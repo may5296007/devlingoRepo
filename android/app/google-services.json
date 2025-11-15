@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "747244538251",
+    "project_id": "devlingo-be146",
+    "storage_bucket": "devlingo-be146.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747244538251:android:c5ced52e043bc4c8b0478e",
+        "android_client_info": {
+          "package_name": "com.devlingo.devlingo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPs2ScnlWk_p5BN9k3sTbYmUs0vY8Owyw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,47 @@
+name: devlingo
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase - versions mises à jour et compatibles
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+
+  # Authentification sociale
+  google_sign_in: ^6.2.1
+
+
+  # UI
+  flutter_svg: ^2.0.9
+  lottie: ^3.0.0  # ← AJOUTÉ pour les animations
+
+  # Biometrics (Face ID)
+  local_auth: ^2.3.0
+
+  cupertino_icons: ^1.0.8
+
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Assets - AJOUTÉ
+  assets:
+    - assets/lottie/

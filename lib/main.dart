@@ -3,23 +3,29 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'firebase_options.dart';
-import 'screens/profile/profile_screen.dart';
-import 'screens/settings/settings_screen.dart';
-import 'providers/ theme_provider.dart';
-import 'screens/cours/cours_list_screen.dart';
-import 'screens/cours/admin/admin_cours_screen.dart';
-import 'screens/cours/course_detail_screen.dart';
 
+// Services
+import 'core/services/auth_service.dart';
 
+// Theme
+import 'core/theme/ theme_provider.dart';
 
-// Importation des écrans
-import 'screens/onboarding/onboarding_screen.dart';
-import 'screens/auth/welcome_screen.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/signup_screen.dart';
-import 'screens/home/home_screen.dart';
-import 'services/auth_service.dart';
+// Routing
+import 'core/routing/auth_wrapper.dart';
+
+// Screens
+import 'features/onboarding/view/onboarding_screen.dart';
+import 'features/onboarding/view/welcome_screen.dart';
+import 'features/auth/view/login_screen.dart';
+import 'features/auth/view/signup_screen.dart';
+import 'features/home/view/home_screen.dart';
+import 'features/profile/view/profile_screen.dart';
+import 'features/settings/view/settings_screen.dart';
+import 'features/courses/view/cours_list_screen.dart';
+import 'features/courses/admin/view/admin_cours_screen.dart';
+import 'features/courses/view/course_detail_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +39,6 @@ void main() async {
     print('❌ Erreur Firebase: $e');
   }
 
-  // ✅ Initialiser SharedPreferences pour le Web
   try {
     await SharedPreferences.getInstance();
     print('✅ SharedPreferences initialisé!');
@@ -41,10 +46,12 @@ void main() async {
     print('⚠️ SharedPreferences pas disponible: $e');
   }
   
-  runApp(DevLingoApp());
+  runApp(const DevLingoApp());
 }
 
 class DevLingoApp extends StatelessWidget {
+  const DevLingoApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -65,110 +72,29 @@ class DevLingoApp extends StatelessWidget {
           return MaterialApp(
             title: 'DevLingo',
             debugShowCheckedModeBanner: false,
-            
-            // 🎨 Thèmes dynamiques
+
+            // 🎨 Thème dynamique
             theme: themeProvider.lightTheme,
             darkTheme: themeProvider.darkTheme,
-            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            
-            home: AuthWrapper(),
-            routes: {
-              '/onboarding': (context) => OnBoardingScreen(),
-              '/welcome': (context) => WelcomeScreen(),
-              '/login': (context) => LoginScreen(),
-              '/signup': (context) => SignUpScreen(),
-              '/home': (context) => HomeScreen(),
-              '/profile': (context) => ProfileScreen(),
-              '/settings': (context) => SettingsScreen(),
-              '/cours': (context) => CoursListScreen(),        // ⬅️ AJOUTE CETTE LIGNE
-              '/admin-cours': (context) => AdminCoursScreen(), 
-              '/course-detail': (context) => CourseDetailScreen(),
-            },
+            themeMode:
+                themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
+            home: const AuthWrapper(),
+
+            routes: {
+              '/onboarding': (context) => const OnBoardingScreen(),
+              '/welcome': (context) => const WelcomeScreen(),
+              '/login': (context) => const LoginScreen(),
+              '/signup': (context) => const SignUpScreen(),
+              '/home': (context) => const HomeScreen(),
+              '/profile': (context) => const ProfileScreen(),
+              '/settings': (context) => const SettingsScreen(),
+              '/cours': (context) => CoursListScreen(),
+              '/admin-cours': (context) =>  AdminCoursScreen(),
+              '/course-detail': (context) =>  CourseDetailScreen(),
+            },
           );
         },
-      ),
-    );
-  }
-}
-
-// Wrapper qui gère l'état d'authentification
-class AuthWrapper extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final user = context.watch<User?>();
-
-    // Si l'utilisateur est connecté
-    if (user != null) {
-      print('✅ Utilisateur connecté: ${user.email}');
-      return HomeScreen();
-    }
-
-    // Si l'utilisateur n'est pas connecté, on vérifie s'il a déjà vu l'onboarding
-    return FutureBuilder<bool>(
-      future: _hasSeenOnboarding(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return SplashScreen();
-        }
-
-        // Si l'utilisateur a déjà vu l'onboarding, on va direct au Welcome
-        if (snapshot.data == true) {
-          return WelcomeScreen();
-        }
-
-        // Sinon, on montre l'onboarding
-        return OnBoardingScreen();
-      },
-    );
-  }
-
-  Future<bool> _hasSeenOnboarding() async {
-    // TODO: Implémenter avec SharedPreferences
-    // Pour l'instant, on retourne false pour toujours montrer l'onboarding
-    await Future.delayed(Duration(milliseconds: 500));
-    return false;
-  }
-}
-
-// Écran de chargement
-class SplashScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF5F7FA),
-              Color(0xFFE8F0FE),
-            ],
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo DevLingo
-              Text(
-                '</DevLingo>',
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2F80ED),
-                  fontFamily: 'monospace',
-                ),
-              ),
-              SizedBox(height: 40),
-              // Loading indicator
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2F80ED)),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

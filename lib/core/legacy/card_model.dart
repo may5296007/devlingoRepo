@@ -33,7 +33,7 @@ class CardModel {
     this.codeExample,
     this.explanation,
     List<String>? options,
-    this.correctAnswer, String? question,
+    this.correctAnswer, String? question, required String reponse,
   }) : options = options ?? const [];
 
   /// Création depuis une Map Firestore
@@ -52,7 +52,7 @@ class CardModel {
       options: rawOptions is List
           ? rawOptions.map((e) => e.toString()).toList()
           : const [],
-      correctAnswer: data['correctAnswer'] as String?,
+      correctAnswer: data['correctAnswer'] as String?, reponse: '',
     );
   }
 
@@ -83,4 +83,6 @@ class CardModel {
   bool get isLesson => type.toLowerCase() == 'lesson';
 
   get question => null;
+
+  get reponse => null;
 }

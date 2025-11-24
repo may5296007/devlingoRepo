@@ -86,30 +86,29 @@ class CoursService {
   }
 
   // Modifier un cours
-  Future<void> updateCours(String coursId, {
-    String? titre,
-    List<CardModel>? cards,
-    String? description,
-  }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception('Non connecté');
+  // Dans votre cours_service.dart, mettez à jour la méthode updateCours :
 
-    // Vérifier les permissions
-    final coursDoc = await _firestore.collection('cours').doc(coursId).get();
-    final createdBy = coursDoc.data()?['createdBy'] as String?;
-    
-    final canEdit = await _roleService.canEditCours(createdBy ?? '');
-    if (!canEdit) throw Exception('Permissions insuffisantes');
+Future<void> updateCours(
+  String coursId, {
+  String? titre,
+  String? description,
+  List<CardModel>? cards,
+}) async {
+  final Map<String, dynamic> updates = {};
 
-    final updates = <String, dynamic>{};
-    if (titre != null) updates['titre'] = titre;
-    if (description != null) updates['description'] = description;
-    if (cards != null) updates['cards'] = cards.map((card) => card.toMap()).toList();
-
-    if (updates.isNotEmpty) {
-      await _firestore.collection('cours').doc(coursId).update(updates);
-    }
+  if (titre != null) {
+    updates['titre'] = titre;
   }
+  if (description != null) {
+    updates['description'] = description;
+  }
+  if (cards != null) {
+    // Convertir les cartes en Map en utilisant la méthode toMap() du CardModel
+    updates['cards'] = cards.map((card) => card.toMap()).toList();
+  }
+
+  await _firestore.collection('cours').doc(coursId).update(updates);
+}
 
   // Supprimer un cours
   Future<void> deleteCours(String coursId) async {

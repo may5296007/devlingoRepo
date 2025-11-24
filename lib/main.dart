@@ -10,7 +10,7 @@ import 'firebase_options.dart';
 import 'core/services/auth_service.dart';
 
 // Theme
-import 'core/theme/ theme_provider.dart';
+import 'core/theme/theme_provider.dart';
 
 // Routing
 import 'core/routing/auth_wrapper.dart';

@@ -30,6 +30,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
       courseData = args['courseData'];
       langageData = args['langageData'];
       cards = courseData?['cards'] ?? [];
+      
+      // Debug
+      print('📚 Nombre de cartes: ${cards.length}');
+      if (cards.isNotEmpty) {
+        print('🃏 Première carte: ${cards[0]}');
+      }
     }
   }
 
@@ -89,12 +95,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            const Text(
               '🎉',
               style: TextStyle(fontSize: 60),
             ),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'Félicitations !',
               style: TextStyle(
                 fontSize: 24,
@@ -102,20 +108,20 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 color: Color(0xFF2F80ED),
               ),
             ),
-            SizedBox(height: 12),
-            Text(
+            const SizedBox(height: 12),
+            const Text(
               'Tu as terminé ce cours !',
               style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Color(0xFFFFD93D).withOpacity(0.2),
+                color: const Color(0xFFFFD93D).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(
+              child: const Text(
                 '+100 XP',
                 style: TextStyle(
                   fontSize: 20,
@@ -132,7 +138,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: Text(
+            child: const Text(
               'Retour aux cours',
               style: TextStyle(color: Color(0xFF2F80ED)),
             ),
@@ -144,22 +150,29 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (courseData == null || cards.isEmpty) {
       return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red),
-              SizedBox(height: 16),
+              Icon(
+                Icons.error_outline, 
+                size: 64, 
+                color: isDark ? Colors.grey[600] : Colors.red,
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Aucune carte disponible',
-                style: TextStyle(fontSize: 18),
+                style: Theme.of(context).textTheme.bodyLarge,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Retour'),
+                child: const Text('Retour'),
               ),
             ],
           ),
@@ -171,28 +184,29 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     final progress = (currentCardIndex + 1) / cards.length;
 
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).cardColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close, color: Color(0xFF1A1A1A)),
+          icon: Icon(
+            Icons.close, 
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           children: [
             Text(
               courseData?['titre'] ?? 'Cours',
-              style: TextStyle(
-                color: Color(0xFF1A1A1A),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
-              '${langageData?['nom'] ?? 'Langage'}',
-              style: TextStyle(
-                color: Colors.grey[600],
+              langageData?['nom'] ?? 'Langage',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 fontSize: 12,
               ),
             ),
@@ -204,8 +218,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
         children: [
           // Barre de progression
           Container(
-            padding: EdgeInsets.all(20),
-            color: Colors.white,
+            padding: const EdgeInsets.all(20),
+            color: Theme.of(context).cardColor,
             child: Column(
               children: [
                 Row(
@@ -213,10 +227,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                   children: [
                     Text(
                       'Carte ${currentCardIndex + 1} sur ${cards.length}',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey[700],
                       ),
                     ),
                     Text(
@@ -224,16 +237,20 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF2F80ED),
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: Colors.grey[200],
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2F80ED)),
+                  backgroundColor: isDark 
+                    ? const Color(0xFF2A3142) 
+                    : Colors.grey[200],
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).primaryColor,
+                  ),
                   minHeight: 8,
                 ),
               ],
@@ -243,10 +260,10 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
           // Contenu de la carte
           Expanded(
             child: Container(
-              margin: EdgeInsets.all(24),
+              margin: const EdgeInsets.all(24),
               child: GestureDetector(
                 onTap: () {
-                  if (currentCard['type'] != 'quiz') {
+                  if (currentCard['type']?.toLowerCase() != 'quiz') {
                     setState(() {
                       showAnswer = !showAnswer;
                     });
@@ -254,56 +271,63 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 },
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
+                    border: isDark 
+                      ? Border.all(color: const Color(0xFF3C445C), width: 2)
+                      : null,
+                    boxShadow: isDark ? [] : [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 20,
-                        offset: Offset(0, 10),
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Type de carte
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _getCardTypeColor(currentCard['type']).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          _getCardTypeLabel(currentCard['type']),
-                          style: TextStyle(
-                            color: _getCardTypeColor(currentCard['type']),
-                            fontWeight: FontWeight.bold,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Type de carte
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16, 
+                            vertical: 8,
                           ),
-                        ),
-                      ),
-                      SizedBox(height: 32),
-
-                      // Contenu principal
-                      if (currentCard['type'] == 'quiz')
-                        _buildQuizCard(currentCard)
-                      else
-                        _buildLessonCard(currentCard),
-
-                      if (currentCard['type'] != 'quiz' && !showAnswer)
-                        Padding(
-                          padding: EdgeInsets.only(top: 32),
+                          decoration: BoxDecoration(
+                            color: _getCardTypeColor(currentCard['type'])
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           child: Text(
-                            'Tapez pour voir la réponse',
+                            _getCardTypeLabel(currentCard['type']),
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[500],
+                              color: _getCardTypeColor(currentCard['type']),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 32),
+
+                        // Contenu principal
+                        if (currentCard['type']?.toLowerCase() == 'quiz')
+                          _buildQuizCard(currentCard, isDark)
+                        else
+                          _buildLessonCard(currentCard, isDark),
+
+                        if (currentCard['type']?.toLowerCase() != 'quiz' && 
+                            !showAnswer)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 32),
+                            child: Text(
+                              'Tapez pour voir la réponse',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -312,8 +336,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
           // Boutons de navigation
           Container(
-            padding: EdgeInsets.all(24),
-            color: Colors.white,
+            padding: const EdgeInsets.all(24),
+            color: Theme.of(context).cardColor,
             child: Row(
               children: [
                 if (currentCardIndex > 0)
@@ -321,39 +345,45 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     child: OutlinedButton(
                       onPressed: _previousCard,
                       style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: Color(0xFF2F80ED)),
+                        side: BorderSide(
+                          color: Theme.of(context).primaryColor,
+                        ),
                       ),
                       child: Text(
                         'Précédent',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                     ),
                   ),
-                if (currentCardIndex > 0) SizedBox(width: 12),
+                if (currentCardIndex > 0) const SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
                     onPressed: _nextCard,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF2F80ED),
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Theme.of(context).primaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 0,
                     ),
                     child: Text(
-                      currentCardIndex == cards.length - 1 ? 'Terminer' : 'Suivant',
-                      style: TextStyle(
+                      currentCardIndex == cards.length - 1 
+                        ? 'Terminer' 
+                        : 'Suivant',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -366,97 +396,164 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     );
   }
 
-  Widget _buildLessonCard(Map<String, dynamic> card) {
+  Widget _buildLessonCard(Map<String, dynamic> card, bool isDark) {
+    // Utiliser 'title' et 'content' du nouveau modèle
+    final title = card['titre'] ?? card['title'] ?? '';
+    final content = card['contenu'] ?? card['content'] ?? '';
+    final codeExample = card['codeExample'];
+    final explanation = card['explanation'];
+
     return Column(
       children: [
         Text(
-          card['question'] ?? '',
-          style: TextStyle(
+          title,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A1A),
           ),
           textAlign: TextAlign.center,
         ),
         if (showAnswer) ...[
-          SizedBox(height: 32),
+          const SizedBox(height: 32),
           Container(
-            padding: EdgeInsets.all(20),
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Color(0xFF2F80ED).withOpacity(0.05),
+              color: Theme.of(context).primaryColor.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Color(0xFF2F80ED).withOpacity(0.2),
+                color: Theme.of(context).primaryColor.withOpacity(0.2),
                 width: 2,
               ),
             ),
             child: Text(
-              card['reponse'] ?? '',
-              style: TextStyle(
-                fontSize: 18,
-                color: Color(0xFF1A1A1A),
+              content,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontSize: 16,
                 height: 1.5,
+              ),
+              textAlign: TextAlign.left,
+            ),
+          ),
+          if (codeExample != null && codeExample.toString().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark 
+                  ? const Color(0xFF1E1E1E) 
+                  : const Color(0xFF2D2D2D),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                codeExample.toString(),
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                  color: Color(0xFF4EC9B0),
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ],
+          if (explanation != null && explanation.toString().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              explanation.toString(),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
               ),
               textAlign: TextAlign.center,
             ),
-          ),
+          ],
         ],
       ],
     );
   }
 
-  Widget _buildQuizCard(Map<String, dynamic> card) {
-    final options = card['options'] as List<dynamic>? ?? [];
+  Widget _buildQuizCard(Map<String, dynamic> card, bool isDark) {
+    final title = card['titre'] ?? card['title'] ?? '';
+    final content = card['contenu'] ?? card['content'];
+    final options = (card['options'] as List<dynamic>?) ?? [];
+    final correctAnswer = card['correctAnswer'];
     final selectedOption = card['selectedOption'];
     
     return Column(
       children: [
         Text(
-          card['question'] ?? '',
-          style: TextStyle(
+          title,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A1A),
           ),
           textAlign: TextAlign.center,
         ),
-        SizedBox(height: 32),
+        if (content != null && content.toString().isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(
+            content.toString(),
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
+        const SizedBox(height: 32),
         ...options.asMap().entries.map((entry) {
           final index = entry.key;
-          final option = entry.value;
-          final isSelected = selectedOption == index;
-          final isCorrect = index == card['correctAnswer'];
+          final option = entry.value.toString();
+          final isSelected = selectedOption == option || 
+                           selectedOption == index;
+          final isCorrect = option == correctAnswer;
           
           return Padding(
-            padding: EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 12),
             child: InkWell(
               onTap: () {
                 setState(() {
-                  cards[currentCardIndex]['selectedOption'] = index;
+                  cards[currentCardIndex]['selectedOption'] = option;
                 });
               },
               child: Container(
                 width: double.infinity,
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? (isCorrect ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1))
-                      : Colors.grey[50],
+                      ? (isCorrect 
+                        ? Colors.green.withOpacity(0.1) 
+                        : Colors.red.withOpacity(0.1))
+                      : (isDark 
+                        ? const Color(0xFF2A3142) 
+                        : Colors.grey[50]),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected
                         ? (isCorrect ? Colors.green : Colors.red)
-                        : Colors.grey[300]!,
+                        : (isDark 
+                          ? const Color(0xFF3C445C) 
+                          : Colors.grey[300]!),
                     width: 2,
                   ),
                 ),
-                child: Text(
-                  option,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: Color(0xFF1A1A1A),
-                  ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        option,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontSize: 16,
+                          fontWeight: isSelected 
+                            ? FontWeight.bold 
+                            : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                    if (isSelected)
+                      Icon(
+                        isCorrect ? Icons.check_circle : Icons.cancel,
+                        color: isCorrect ? Colors.green : Colors.red,
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -467,25 +564,25 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 
   Color _getCardTypeColor(String? type) {
-    switch (type) {
-      case 'lecon':
-        return Color(0xFF2F80ED);
+    switch (type?.toLowerCase()) {
+      case 'lesson':
+        return const Color(0xFF2F80ED);
       case 'quiz':
-        return Color(0xFFFF6B6B);
-      case 'exemple':
-        return Color(0xFF4ECDC4);
+        return const Color(0xFFFF6B6B);
+      case 'example':
+        return const Color(0xFF4ECDC4);
       default:
-        return Color(0xFF2F80ED);
+        return const Color(0xFF2F80ED);
     }
   }
 
   String _getCardTypeLabel(String? type) {
-    switch (type) {
-      case 'lecon':
+    switch (type?.toLowerCase()) {
+      case 'lesson':
         return '📚 Leçon';
       case 'quiz':
         return '❓ Quiz';
-      case 'exemple':
+      case 'example':
         return '💡 Exemple';
       default:
         return '📝 Carte';

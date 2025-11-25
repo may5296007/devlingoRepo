@@ -1,30 +1,113 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/legacy/langage_model.dart';
 import '../../../legacy/cours_model.dart';
 import '../../../core/services/cours_service.dart';
-import 'cours_swipe_screen.dart';
 
-class LangageCoursScreen extends StatelessWidget {
+class LangageCoursScreen extends StatefulWidget {
   final LangageModel langage;
+
+  const LangageCoursScreen({Key? key, required this.langage}) : super(key: key);
+
+  @override
+  State<LangageCoursScreen> createState() => _LangageCoursScreenState();
+}
+
+class _LangageCoursScreenState extends State<LangageCoursScreen> {
   final CoursService _coursService = CoursService();
 
-  LangageCoursScreen({Key? key, required this.langage}) : super(key: key);
+  @override
+  void initState() {
+    super.initState();
+    _testConnection();  // ✅ Test automatique au démarrage
+  }
+
+  // 🧪 Fonction de test pour vérifier que tout fonctionne
+  Future<void> _testConnection() async {
+    print('\n🧪 ===TEST DE CONNEXION FIRESTORE ===');
+    
+    try {
+      final firestore = FirebaseFirestore.instance;
+      
+      // Test 1: Compter tous les cours
+      final allCours = await firestore.collection('cours').get();
+      print('📚 Total cours dans Firestore: ${allCours.docs.length}');
+      
+      if (allCours.docs.isEmpty) {
+        print('⚠️  Aucun cours dans Firestore. Crée un cours d\'abord !');
+        return;
+      }
+      
+      // Afficher les cours
+      for (var doc in allCours.docs) {
+        final data = doc.data();
+        print('   - ${data['titre']} (langageId: ${data['langageId']}, ordre: ${data['ordre']})');
+      }
+      
+      // Test 2: Filtrer par langageId (sans orderBy)
+      print('\n🔍 Test filtre par langageId: ${widget.langage.id}');
+      final filtered = await firestore
+          .collection('cours')
+          .where('langageId', isEqualTo: widget.langage.id)
+          .get();
+      
+      print('   Cours filtrés: ${filtered.docs.length}');
+      
+      // Test 3: Avec orderBy (nécessite l'index)
+      print('\n🎯 Test avec orderBy (nécessite index)...');
+      final ordered = await firestore
+          .collection('cours')
+          .where('langageId', isEqualTo: widget.langage.id)
+          .orderBy('ordre')
+          .get();
+      
+      print('✅ SUCCÈS ! L\'index fonctionne !');
+      print('📋 Cours trouvés et triés:');
+      for (var doc in ordered.docs) {
+        final data = doc.data();
+        print('   ${data['ordre']}. ${data['titre']}');
+      }
+    } catch (e) {
+      print('❌ ERREUR: $e');
+      
+      if (e.toString().contains('index')) {
+        print('\n💡 SOLUTION:');
+        print('═══════════════════════════════════════');
+        print('L\'index Firestore n\'est pas créé !');
+        print('');
+        print('1. Va sur Firebase Console');
+        print('2. Clique sur l\'onglet "Indexes"');
+        print('3. Clique sur "Create Index"');
+        print('4. Configure:');
+        print('   Collection: cours');
+        print('   Fields:');
+        print('     - langageId (Ascending)');
+        print('     - ordre (Ascending)');
+        print('5. Attends 2-5 minutes que ça devienne "Enabled"');
+        print('═══════════════════════════════════════');
+      }
+    }
+    
+    print('=========================\n');
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           // AppBar avec gradient
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
-            backgroundColor: Color(0xFF2F80ED),
+            backgroundColor: Theme.of(context).primaryColor,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                langage.nom,
-                style: TextStyle(
+                widget.langage.nom,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   shadows: [
                     Shadow(
@@ -40,13 +123,15 @@ class LangageCoursScreen extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF2F80ED), Color(0xFF56CCF2)],
+                    colors: isDark
+                      ? [const Color(0xFF4A9FFF), const Color(0xFF7EC8FF)]
+                      : [const Color(0xFF2F80ED), const Color(0xFF56CCF2)],
                   ),
                 ),
                 child: Center(
                   child: Text(
-                    langage.icon,
-                    style: TextStyle(fontSize: 80),
+                    widget.langage.icon,
+                    style: const TextStyle(fontSize: 80),
                   ),
                 ),
               ),
@@ -56,16 +141,19 @@ class LangageCoursScreen extends StatelessWidget {
           // Description
           SliverToBoxAdapter(
             child: Container(
-              padding: EdgeInsets.all(24),
-              margin: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
+              margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
+                border: isDark
+                    ? Border.all(color: const Color(0xFF3C445C), width: 2)
+                    : null,
+                boxShadow: isDark ? [] : [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -74,18 +162,15 @@ class LangageCoursScreen extends StatelessWidget {
                 children: [
                   Text(
                     'À propos',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A1A1A),
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    langage.description,
-                    style: TextStyle(
+                    widget.langage.description,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontSize: 16,
-                      color: Colors.grey[700],
                       height: 1.5,
                     ),
                   ),
@@ -97,29 +182,28 @@ class LangageCoursScreen extends StatelessWidget {
           // Liste des cours
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
                 'Cours disponibles',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A1A1A),
                 ),
               ),
             ),
           ),
 
           StreamBuilder<List<CoursModel>>(
-            stream: _coursService.getCoursByLangage(langage.id),
+            stream: _coursService.getCoursByLangage(widget.langage.id),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
-                      padding: EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(32),
                       child: CircularProgressIndicator(
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Color(0xFF2F80ED)),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor,
+                        ),
                       ),
                     ),
                   ),
@@ -127,11 +211,31 @@ class LangageCoursScreen extends StatelessWidget {
               }
 
               if (snapshot.hasError) {
+                print('❌ Erreur Stream: ${snapshot.error}');
                 return SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Text('Erreur de chargement'),
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: isDark ? Colors.grey[600] : Colors.red,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Erreur de chargement',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${snapshot.error}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -143,20 +247,19 @@ class LangageCoursScreen extends StatelessWidget {
                 return SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
-                      padding: EdgeInsets.all(48),
+                      padding: const EdgeInsets.all(48),
                       child: Column(
                         children: [
                           Icon(
                             Icons.menu_book_outlined,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: isDark ? Colors.grey[600] : Colors.grey[400],
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
                             'Aucun cours disponible',
-                            style: TextStyle(
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               fontSize: 18,
-                              color: Colors.grey[600],
                             ),
                           ),
                         ],
@@ -169,7 +272,7 @@ class LangageCoursScreen extends StatelessWidget {
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    return _buildCoursCard(context, coursList[index]);
+                    return _buildCoursCard(context, coursList[index], isDark);
                   },
                   childCount: coursList.length,
                 ),
@@ -177,13 +280,13 @@ class LangageCoursScreen extends StatelessWidget {
             },
           ),
 
-          SliverToBoxAdapter(child: SizedBox(height: 32)),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
   }
 
-  Widget _buildCoursCard(BuildContext context, CoursModel cours) {
+  Widget _buildCoursCard(BuildContext context, CoursModel cours, bool isDark) {
     return FutureBuilder<Map<String, dynamic>>(
       future: _coursService.getProgress(cours.id),
       builder: (context, progressSnapshot) {
@@ -191,15 +294,18 @@ class LangageCoursScreen extends StatelessWidget {
         final completed = progressSnapshot.data?['completed'] as bool? ?? false;
 
         return Container(
-          margin: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
+            border: isDark
+                ? Border.all(color: const Color(0xFF3C445C), width: 2)
+                : null,
+            boxShadow: isDark ? [] : [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
                 blurRadius: 10,
-                offset: Offset(0, 4),
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -208,15 +314,26 @@ class LangageCoursScreen extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () {
-                Navigator.push(
+                // Navigue vers le cours via route nommée avec arguments
+                Navigator.pushNamed(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => CoursSwipeScreen(cours: cours),
-                  ),
+                  '/course-detail',
+                  arguments: {
+                    'courseId': cours.id,
+                    'courseData': {
+                      'titre': cours.titre,
+                      'description': cours.description,
+                      'cards': cours.cards.map((c) => c.toMap()).toList(),
+                    },
+                    'langageData': {
+                      'nom': widget.langage.nom,
+                      'icon': widget.langage.icon,
+                    },
+                  },
                 );
               },
               child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -229,17 +346,19 @@ class LangageCoursScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: completed
-                                  ? [Color(0xFF4CAF50), Color(0xFF66BB6A)]
-                                  : [Color(0xFF2F80ED), Color(0xFF56CCF2)],
+                                  ? [const Color(0xFF4CAF50), const Color(0xFF66BB6A)]
+                                  : isDark
+                                    ? [const Color(0xFF4A9FFF), const Color(0xFF7EC8FF)]
+                                    : [const Color(0xFF2F80ED), const Color(0xFF56CCF2)],
                             ),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
                             child: completed
-                                ? Icon(Icons.check, color: Colors.white, size: 24)
+                                ? const Icon(Icons.check, color: Colors.white, size: 24)
                                 : Text(
                                     '${cours.ordre}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 20,
@@ -248,7 +367,7 @@ class LangageCoursScreen extends StatelessWidget {
                           ),
                         ),
 
-                        SizedBox(width: 16),
+                        const SizedBox(width: 16),
 
                         // Titre et info
                         Expanded(
@@ -257,34 +376,37 @@ class LangageCoursScreen extends StatelessWidget {
                             children: [
                               Text(
                                 cours.titre,
-                                style: TextStyle(
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1A1A1A),
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.layers,
-                                      size: 16, color: Colors.grey[600]),
-                                  SizedBox(width: 4),
+                                  Icon(
+                                    Icons.layers,
+                                    size: 16,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  ),
+                                  const SizedBox(width: 4),
                                   Text(
                                     '${cours.totalCards} cartes',
-                                    style: TextStyle(
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                       fontSize: 14,
-                                      color: Colors.grey[600],
                                     ),
                                   ),
-                                  SizedBox(width: 12),
-                                  Icon(Icons.quiz,
-                                      size: 16, color: Colors.grey[600]),
-                                  SizedBox(width: 4),
+                                  const SizedBox(width: 12),
+                                  Icon(
+                                    Icons.quiz,
+                                    size: 16,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  ),
+                                  const SizedBox(width: 4),
                                   Text(
                                     '${cours.quizCount} quiz',
-                                    style: TextStyle(
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                       fontSize: 14,
-                                      color: Colors.grey[600],
                                     ),
                                   ),
                                 ],
@@ -296,31 +418,33 @@ class LangageCoursScreen extends StatelessWidget {
                         // Icône
                         Icon(
                           Icons.arrow_forward_ios,
-                          color: Color(0xFF2F80ED),
+                          color: Theme.of(context).primaryColor,
                           size: 20,
                         ),
                       ],
                     ),
 
                     if (progress > 0) ...[
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: LinearProgressIndicator(
                           value: progress / 100,
                           minHeight: 8,
-                          backgroundColor: Colors.grey[200],
+                          backgroundColor: isDark
+                              ? const Color(0xFF2A3142)
+                              : Colors.grey[200],
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            completed ? Color(0xFF4CAF50) : Color(0xFF2F80ED),
+                            completed ? const Color(0xFF4CAF50) : Theme.of(context).primaryColor,
                           ),
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         completed ? 'Terminé ✓' : '$progress% complété',
                         style: TextStyle(
                           fontSize: 12,
-                          color: completed ? Color(0xFF4CAF50) : Color(0xFF2F80ED),
+                          color: completed ? const Color(0xFF4CAF50) : Theme.of(context).primaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

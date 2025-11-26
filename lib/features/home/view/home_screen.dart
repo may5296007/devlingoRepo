@@ -45,6 +45,7 @@ class _HomeViewState extends State<_HomeView>
       curve: Curves.easeOut,
     );
 
+    // Charger les données utilisateur via le ViewModel
     Future.microtask(() async {
       final vm = context.read<HomeViewModel>();
       await vm.loadUserData();
@@ -63,15 +64,12 @@ class _HomeViewState extends State<_HomeView>
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<HomeViewModel>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (vm.isLoading) {
       return Scaffold(
-        body: Center(
+        body: const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).primaryColor,
-            ),
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2F80ED)),
           ),
         ),
       );
@@ -80,21 +78,33 @@ class _HomeViewState extends State<_HomeView>
     final userData = vm.userData;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: _buildHeader(userData, vm, isDark)),
-              SliverToBoxAdapter(child: _buildDailyStats(userData, isDark)),
               SliverToBoxAdapter(
-                child: _buildWeekCalendar(vm.joursCompletsSemaine, isDark),
+                child: _buildHeader(userData, vm),
               ),
-              SliverToBoxAdapter(child: _buildDailyGoal(isDark)),
-              SliverToBoxAdapter(child: _buildCurrentCourse(isDark)),
-              SliverToBoxAdapter(child: _buildBadges(userData, isDark)),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              SliverToBoxAdapter(
+                child: _buildDailyStats(userData),
+              ),
+              SliverToBoxAdapter(
+                child: _buildWeekCalendar(vm.joursCompletsSemaine),
+              ),
+              SliverToBoxAdapter(
+                child: _buildDailyGoal(),
+              ),
+              SliverToBoxAdapter(
+                child: _buildCurrentCourse(),
+              ),
+              SliverToBoxAdapter(
+                child: _buildBadges(userData),
+              ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 32),
+              ),
             ],
           ),
         ),
@@ -104,11 +114,7 @@ class _HomeViewState extends State<_HomeView>
 
   // ============ HEADER ============
 
-  Widget _buildHeader(
-    Map<String, dynamic>? userData,
-    HomeViewModel vm,
-    bool isDark,
-  ) {
+  Widget _buildHeader(Map<String, dynamic>? userData, HomeViewModel vm) {
     final prenom = (userData?['prenom'] ?? 'Développeur').toString();
     final niveau = (userData?['niveau'] ?? 'débutant').toString();
 
@@ -127,14 +133,12 @@ class _HomeViewState extends State<_HomeView>
                   height: 60,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [Color(0xFF4A9FFF), Color(0xFF7EC8FF)]
-                          : [Color(0xFF2F80ED), Color(0xFF56CCF2)],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2F80ED), Color(0xFF56CCF2)],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).primaryColor.withOpacity(0.3),
+                        color: const Color(0xFF2F80ED).withOpacity(0.3),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -142,7 +146,9 @@ class _HomeViewState extends State<_HomeView>
                   ),
                   child: Center(
                     child: Text(
-                      prenom.isNotEmpty ? prenom[0].toUpperCase() : '?',
+                      prenom.isNotEmpty
+                          ? prenom[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -159,10 +165,7 @@ class _HomeViewState extends State<_HomeView>
                     decoration: BoxDecoration(
                       color: _getLevelColor(niveau),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark ? Color(0xFF1E2430) : Colors.white,
-                        width: 2,
-                      ),
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: Icon(
                       _getLevelIcon(niveau),
@@ -183,31 +186,35 @@ class _HomeViewState extends State<_HomeView>
               children: [
                 Text(
                   'Salut, $prenom ! 👋',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.displayMedium?.copyWith(fontSize: 22),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Prêt à coder aujourd\'hui ?',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),
           ),
 
           IconButton(
-            icon: Icon(
-              Icons.settings_outlined,
-              color: Theme.of(context).primaryColor,
-            ),
-            onPressed: () {
-              Navigator.pushNamed(context, '/settings');
+            icon: const Icon(Icons.school, color: Color(0xFF2F80ED)),
+            onPressed: () async {
+              await Navigator.pushNamed(context, '/cours');
+              if (!mounted) return;
+              await context.read<HomeViewModel>().loadUserData();
             },
           ),
 
+
+          // Bouton "marquer jour complet"
           IconButton(
             icon: const Icon(Icons.check_circle, color: Color(0xFF4CAF50)),
             onPressed: () async {
@@ -230,7 +237,7 @@ class _HomeViewState extends State<_HomeView>
           ),
 
           IconButton(
-            icon: Icon(Icons.school, color: Theme.of(context).primaryColor),
+            icon: const Icon(Icons.school, color: Color(0xFF2F80ED)),
             onPressed: () {
               Navigator.pushNamed(context, '/cours');
             },
@@ -242,7 +249,7 @@ class _HomeViewState extends State<_HomeView>
 
   // ============ STATS ============
 
-  Widget _buildDailyStats(Map<String, dynamic>? userData, bool isDark) {
+  Widget _buildDailyStats(Map<String, dynamic>? userData) {
     final points = userData?['points'] ?? 0;
     final streak = userData?['streak'] ?? 0;
 
@@ -257,7 +264,6 @@ class _HomeViewState extends State<_HomeView>
               value: '$streak',
               color: const Color(0xFFFF6B6B),
               gradient: const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
-              isDark: isDark,
             ),
           ),
           const SizedBox(width: 12),
@@ -268,7 +274,6 @@ class _HomeViewState extends State<_HomeView>
               value: '$points',
               color: const Color(0xFFFFD93D),
               gradient: const [Color(0xFFFFD93D), Color(0xFFFFA500)],
-              isDark: isDark,
             ),
           ),
           const SizedBox(width: 12),
@@ -279,7 +284,6 @@ class _HomeViewState extends State<_HomeView>
               value: _getUserLevel(points),
               color: const Color(0xFF4ECDC4),
               gradient: const [Color(0xFF4ECDC4), Color(0xFF44A08D)],
-              isDark: isDark,
             ),
           ),
         ],
@@ -293,7 +297,6 @@ class _HomeViewState extends State<_HomeView>
     required String value,
     required Color color,
     required List<Color> gradient,
-    required bool isDark,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -302,7 +305,7 @@ class _HomeViewState extends State<_HomeView>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(isDark ? 0.2 : 0.3),
+            color: color.withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -335,24 +338,27 @@ class _HomeViewState extends State<_HomeView>
 
   // ============ CALENDRIER ============
 
-  Widget _buildWeekCalendar(List<String> joursCompletsSemaine, bool isDark) {
+  Widget _buildWeekCalendar(List<String> joursCompletsSemaine) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Cette semaine',
-            style: Theme.of(
-              context,
-            ).textTheme.displaySmall?.copyWith(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A1A1A),
+            ),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(7, (index) {
               final now = DateTime.now();
-              final day = now.subtract(Duration(days: now.weekday - 1 - index));
+              final day =
+                  now.subtract(Duration(days: now.weekday - 1 - index));
               final isToday = day.day == now.day;
 
               final dateKey =
@@ -364,7 +370,6 @@ class _HomeViewState extends State<_HomeView>
                 date: day.day.toString(),
                 isToday: isToday,
                 isCompleted: isCompleted,
-                isDark: isDark,
               );
             }),
           ),
@@ -378,14 +383,14 @@ class _HomeViewState extends State<_HomeView>
     required String date,
     required bool isToday,
     required bool isCompleted,
-    required bool isDark,
   }) {
     return Column(
       children: [
         Text(
           day,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: TextStyle(
             fontSize: 12,
+            color: Colors.grey[600],
             fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -397,22 +402,19 @@ class _HomeViewState extends State<_HomeView>
             color: isCompleted
                 ? const Color(0xFF4ECDC4)
                 : isToday
-                ? Theme.of(context).primaryColor
-                : isDark
-                ? Color(0xFF2A3142)
-                : Colors.grey[200],
+                    ? const Color(0xFF2F80ED)
+                    : Colors.grey[200],
             shape: BoxShape.circle,
             border: isToday
-                ? Border.all(color: Theme.of(context).primaryColor, width: 3)
+                ? Border.all(color: const Color(0xFF2F80ED), width: 3)
                 : null,
             boxShadow: isCompleted || isToday
                 ? [
                     BoxShadow(
-                      color:
-                          (isCompleted
-                                  ? const Color(0xFF4ECDC4)
-                                  : Theme.of(context).primaryColor)
-                              .withOpacity(0.3),
+                      color: (isCompleted
+                              ? const Color(0xFF4ECDC4)
+                              : const Color(0xFF2F80ED))
+                          .withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -427,11 +429,7 @@ class _HomeViewState extends State<_HomeView>
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isToday
-                          ? Colors.white
-                          : isDark
-                          ? Colors.grey[400]
-                          : Colors.grey[600],
+                      color: isToday ? Colors.white : Colors.grey[600],
                     ),
                   ),
           ),
@@ -442,24 +440,21 @@ class _HomeViewState extends State<_HomeView>
 
   // ============ OBJECTIF DU JOUR ============
 
-  Widget _buildDailyGoal(bool isDark) {
+  Widget _buildDailyGoal() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDark
-                ? [Color(0xFF4A5A8A), Color(0xFF5E4B7A)]
-                : [Color(0xFF667EEA), Color(0xFF764BA2)],
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: (isDark ? Color(0xFF4A5A8A) : Color(0xFF667EEA))
-                  .withOpacity(0.3),
+              color: const Color(0xFF667EEA).withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -473,11 +468,8 @@ class _HomeViewState extends State<_HomeView>
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.emoji_events,
-                color: Colors.white,
-                size: 32,
-              ),
+              child: const Icon(Icons.emoji_events,
+                  color: Colors.white, size: 32),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -504,9 +496,8 @@ class _HomeViewState extends State<_HomeView>
                   LinearProgressIndicator(
                     value: 0.3,
                     backgroundColor: Colors.white.withOpacity(0.3),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.white,
-                    ),
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(Colors.white),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ],
@@ -520,178 +511,192 @@ class _HomeViewState extends State<_HomeView>
 
   // ============ COURS ACTUELS ============
 
-  Widget _buildCurrentCourse(bool isDark) {
+  Widget _buildCurrentCourse() {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Langages disponibles',
-            style: Theme.of(
-              context,
-            ).textTheme.displaySmall?.copyWith(fontSize: 18),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Langages disponibles',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A1A1A),
           ),
-          const SizedBox(height: 16),
-          StreamBuilder<QuerySnapshot>(
-            stream: _firestore
-                .collection('langages')
-                .orderBy('nom')
-                .snapshots(),
-            builder: (context, langageSnapshot) {
-              if (!langageSnapshot.hasData ||
-                  langageSnapshot.data!.docs.isEmpty) {
-                return Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark ? Color(0xFF3C445C) : Colors.grey[200]!,
-                    ),
-                  ),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.school_outlined,
-                          size: 48,
-                          color: isDark ? Colors.grey[600] : Colors.grey[400],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Aucun langage disponible',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.copyWith(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return Column(
-                children: langageSnapshot.data!.docs.map((langageDoc) {
-                  final langageData = langageDoc.data() as Map<String, dynamic>;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        const SizedBox(height: 16),
+        StreamBuilder<QuerySnapshot>(
+          stream: _firestore.collection('langages').orderBy('nom').snapshots(),
+          builder: (context, langageSnapshot) {
+            if (!langageSnapshot.hasData ||
+                langageSnapshot.data!.docs.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Center(
+                  child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              (langageData['icon'] ?? '💻').toString(),
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              (langageData['nom'] ?? 'Langage').toString(),
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
-                              ),
-                            ),
-                          ],
+                      Icon(Icons.school_outlined,
+                          size: 48, color: Colors.grey[400]),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Aucun langage disponible',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      StreamBuilder<QuerySnapshot>(
-                        stream: _firestore
-                            .collection('cours')
-                            .where('langageId', isEqualTo: langageDoc.id)
-                            .orderBy('ordre')
-                            .snapshots(),
-                        builder: (context, coursSnapshot) {
-                          if (!coursSnapshot.hasData ||
-                              coursSnapshot.data!.docs.isEmpty) {
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? Color(0xFF2A3142)
-                                    : Colors.grey[100],
-                                borderRadius: BorderRadius.circular(8),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: langageSnapshot.data!.docs.map((langageDoc) {
+                final langageData =
+                    langageDoc.data() as Map<String, dynamic>;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2F80ED).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            (langageData['icon'] ?? '💻').toString(),
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            (langageData['nom'] ?? 'Langage').toString(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2F80ED),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: _firestore
+                          .collection('cours')
+                          .where('langageId', isEqualTo: langageDoc.id)
+                          .orderBy('ordre')
+                          .snapshots(),
+                      builder: (context, coursSnapshot) {
+                        if (!coursSnapshot.hasData ||
+                            coursSnapshot.data!.docs.isEmpty) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Aucun cours disponible pour ce langage',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
                               ),
-                              child: Text(
-                                'Aucun cours disponible pour ce langage',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          children:
+                              coursSnapshot.data!.docs.map((coursDoc) {
+                            final coursData =
+                                coursDoc.data() as Map<String, dynamic>;
+                            final cards =
+                                coursData['cards'] as List<dynamic>? ?? [];
+
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.only(bottom: 12),
+                              child: InkWell(
+                                onTap: () async {
+                                  await Navigator.pushNamed(
+                                    context,
+                                    '/course-detail',
+                                    arguments: {
+                                      'courseId': coursDoc.id,
+                                      'courseData': coursData,
+                                      'langageData': langageData,
+                                    },
+                                  );
+
+                                  if (!mounted) return;
+                                  await context.read<HomeViewModel>().loadUserData();
+                                },
+
+
+                                child: _buildCourseCard(
+                                  title: (coursData['titre'] ??
+                                          'Cours sans titre')
+                                      .toString(),
+                                  subtitle:
+                                      '${cards.length} cartes • ${(coursData['description'] ?? 'Cliquez pour commencer').toString()}',
+                                  progress:
+                                      _calculateProgress(coursDoc.id),
+                                  color: _getLanguageColor(
+                                      langageData['nom']?.toString()),
+                                  icon: (langageData['icon'] ?? '💻')
+                                      .toString(),
+                                ),
                               ),
                             );
-                          }
-
-                          return Column(
-                            children: coursSnapshot.data!.docs.map((coursDoc) {
-                              final coursData =
-                                  coursDoc.data() as Map<String, dynamic>;
-                              final cards =
-                                  coursData['cards'] as List<dynamic>? ?? [];
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/course-detail',
-                                      arguments: {
-                                        'courseId': coursDoc.id,
-                                        'courseData': coursData,
-                                        'langageData': langageData,
-                                      },
-                                    );
-                                  },
-                                  child: _buildCourseCard(
-                                    title:
-                                        (coursData['titre'] ??
-                                                'Cours sans titre')
-                                            .toString(),
-                                    subtitle:
-                                        '${cards.length} cartes • ${(coursData['description'] ?? 'Cliquez pour commencer').toString()}',
-                                    progress: _calculateProgress(coursDoc.id),
-                                    color: _getLanguageColor(
-                                      langageData['nom']?.toString(),
-                                    ),
-                                    icon: (langageData['icon'] ?? '💻')
-                                        .toString(),
-                                    isDark: isDark,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    ),
+  );
   }
 
   double _calculateProgress(String courseId) {
-    return 0.0;
-  }
+  final vm = context.read<HomeViewModel>();
+  final userData = vm.userData;
+
+  if (userData == null) return 0.0;
+
+  final coursProgress = userData['coursProgress'] as Map<String, dynamic>?;
+
+  if (coursProgress == null) return 0.0;
+  if (!coursProgress.containsKey(courseId)) return 0.0;
+
+  final data = coursProgress[courseId] as Map<String, dynamic>?;
+
+  if (data == null) return 0.0;
+
+  final num progress = (data['progress'] ?? 0);
+
+  // Convertir 100% → 1.0
+  return (progress / 100).clamp(0.0, 1.0);
+}
+
 
   Color _getLanguageColor(String? langage) {
     switch (langage?.toLowerCase()) {
@@ -720,23 +725,19 @@ class _HomeViewState extends State<_HomeView>
     required double progress,
     required Color color,
     required String icon,
-    required bool isDark,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: Color(0xFF3C445C), width: 2) : null,
-        boxShadow: isDark
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -758,24 +759,24 @@ class _HomeViewState extends State<_HomeView>
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: isDark
-                      ? Color(0xFF2A3142)
-                      : Colors.grey[200],
+                  backgroundColor: Colors.grey[200],
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -791,7 +792,7 @@ class _HomeViewState extends State<_HomeView>
 
   // ============ BADGES ============
 
-  Widget _buildBadges(Map<String, dynamic>? userData, bool isDark) {
+  Widget _buildBadges(Map<String, dynamic>? userData) {
     final badges = userData?['badges'] ?? ['master'];
 
     return Padding(
@@ -799,21 +800,23 @@ class _HomeViewState extends State<_HomeView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Badges débloqués 🏆',
-            style: Theme.of(
-              context,
-            ).textTheme.displaySmall?.copyWith(fontSize: 18),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A1A1A),
+            ),
           ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              _buildBadge('🎯', 'Premier pas', true, isDark),
-              _buildBadge('🔥', 'Streak 7j', badges.contains('master'), isDark),
-              _buildBadge('⭐', 'Master', badges.contains('master'), isDark),
-              _buildBadge('🚀', 'Fusée', false, isDark),
+              _buildBadge('🎯', 'Premier pas', true),
+              _buildBadge('🔥', 'Streak 7j', badges.contains('master')),
+              _buildBadge('⭐', 'Master', badges.contains('master')),
+              _buildBadge('🚀', 'Fusée', false),
             ],
           ),
         ],
@@ -821,22 +824,17 @@ class _HomeViewState extends State<_HomeView>
     );
   }
 
-  Widget _buildBadge(String emoji, String label, bool isUnlocked, bool isDark) {
+  Widget _buildBadge(String emoji, String label, bool isUnlocked) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isUnlocked
             ? const Color(0xFFFFD93D).withOpacity(0.2)
-            : isDark
-            ? Color(0xFF2A3142)
             : Colors.grey[200],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isUnlocked
-              ? const Color(0xFFFFD93D)
-              : isDark
-              ? Color(0xFF3C445C)
-              : Colors.grey[300]!,
+          color:
+              isUnlocked ? const Color(0xFFFFD93D) : Colors.grey[300]!,
           width: isUnlocked ? 2 : 1,
         ),
       ),
@@ -846,11 +844,7 @@ class _HomeViewState extends State<_HomeView>
             emoji,
             style: TextStyle(
               fontSize: 28,
-              color: isUnlocked
-                  ? Colors.black
-                  : isDark
-                  ? Colors.grey[600]
-                  : Colors.grey,
+              color: isUnlocked ? Colors.black : Colors.grey,
             ),
           ),
           const SizedBox(height: 4),
@@ -859,11 +853,7 @@ class _HomeViewState extends State<_HomeView>
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isUnlocked
-                  ? (isDark ? Colors.white : Color(0xFF1A1A1A))
-                  : isDark
-                  ? Colors.grey[500]
-                  : Colors.grey[600],
+              color: isUnlocked ? const Color(0xFF1A1A1A) : Colors.grey[600],
             ),
           ),
         ],

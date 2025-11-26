@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../legacy/cours_model.dart';
 import '../../../../core/services/cours_service.dart';
 import '../../../../core/legacy/card_model.dart';
+import '../view/exercise_editor_dialog.dart';
 
 class CourseEditorScreen extends StatefulWidget {
   final String langageId;
@@ -101,34 +102,209 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
       }
     }
   }
+  // ===============================================
+// MÉTHODE À AJOUTER dans course_editor_screen.dart
+// ===============================================
+// Place cette méthode APRÈS _saveCours() (vers ligne 104)
+
+Future<void> _deleteCours() async {
+  // Demander confirmation
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+          SizedBox(width: 12),
+          Text('Supprimer le cours ?'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tu es sur le point de supprimer :',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            '"${widget.cours?.titre}"',
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).primaryColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 16),
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.red, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Cette action est irréversible !',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.delete_forever, size: 20),
+              SizedBox(width: 4),
+              Text('Supprimer'),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  // Si l'utilisateur annule
+  if (confirmed != true) return;
+
+  setState(() => _isLoading = true);
+
+  try {
+    // Supprimer le cours
+    await _coursService.deleteCours(widget.cours!.id);
+    
+    if (mounted) {
+      // Notification de succès
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Cours supprimé avec succès !'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      // Retour à la liste
+      Navigator.pop(context, true);
+    }
+  } catch (e) {
+    if (mounted) {
+      // Notification d'erreur
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(child: Text('Erreur : $e')),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+}
 
   void _addCard(String type) {
-    showDialog(
-      context: context,
-      builder: (context) => _CardEditorDialog(
-        type: type,
-        onSave: (card) {
-          setState(() {
-            _cards.add(card);
-          });
-        },
-      ),
-    );
+    if (type == 'exercise') {
+      // Dialogue spécial pour les exercices
+      showDialog(
+        context: context,
+        builder: (context) => ExerciseEditorDialog(
+          onSave: (card) {
+            setState(() {
+              _cards.add(card);
+            });
+          },
+        ),
+      );
+    } else {
+      // Dialogue normal pour les autres types
+      showDialog(
+        context: context,
+        builder: (context) => _CardEditorDialog(
+          type: type,
+          onSave: (card) {
+            setState(() {
+              _cards.add(card);
+            });
+          },
+        ),
+      );
+    }
   }
 
   void _editCard(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => _CardEditorDialog(
-        type: _cards[index].type,
-        card: _cards[index],
-        onSave: (card) {
-          setState(() {
-            _cards[index] = card;
-          });
-        },
-      ),
-    );
+    final card = _cards[index];
+    
+    if (card.type == 'exercise') {
+      // Dialogue spécial pour les exercices
+      showDialog(
+        context: context,
+        builder: (context) => ExerciseEditorDialog(
+          card: card,
+          onSave: (updatedCard) {
+            setState(() {
+              _cards[index] = updatedCard;
+            });
+          },
+        ),
+      );
+    } else {
+      // Dialogue normal pour les autres types
+      showDialog(
+        context: context,
+        builder: (context) => _CardEditorDialog(
+          type: card.type,
+          card: card,
+          onSave: (updatedCard) {
+            setState(() {
+              _cards[index] = updatedCard;
+            });
+          },
+        ),
+      );
+    }
   }
 
   void _deleteCard(int index) {
@@ -173,33 +349,48 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          widget.cours == null ? 'Nouveau cours' : 'Modifier le cours',
-        ),
-        backgroundColor: Theme.of(context).primaryColor,
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveCours,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Text(
-                    'ENREGISTRER',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-          ),
-        ],
+      // ===============================================
+// APPBAR MODIFIÉ avec bouton SUPPRIMER
+// ===============================================
+// Remplace l'AppBar dans course_editor_screen.dart (vers ligne 176)
+
+appBar: AppBar(
+  title: Text(
+    widget.cours == null ? 'Nouveau cours' : 'Modifier le cours',
+  ),
+  backgroundColor: Theme.of(context).primaryColor,
+  actions: [
+    // ✅ BOUTON SUPPRIMER (seulement si on édite un cours existant)
+    if (widget.cours != null)
+      IconButton(
+        icon: const Icon(Icons.delete_outline),
+        onPressed: _isLoading ? null : _deleteCours,
+        tooltip: 'Supprimer le cours',
+        color: Colors.white,
       ),
+    
+    // Bouton ENREGISTRER
+    TextButton(
+      onPressed: _isLoading ? null : _saveCours,
+      child: _isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          : const Text(
+              'ENREGISTRER',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+    ),
+  ],
+),
       body: Form(
         key: _formKey,
         child: Column(
@@ -231,7 +422,7 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _descriptionController,
-                    maxLines: 2,
+                    maxLines: 3,
                     style: Theme.of(context).textTheme.bodyLarge,
                     decoration: InputDecoration(
                       labelText: 'Description (optionnelle)',
@@ -246,192 +437,229 @@ class _CourseEditorScreenState extends State<CourseEditorScreen> {
               ),
             ),
 
-            // En-tête des cartes
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Cartes (${_cards.length})',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontSize: 18,
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.add_circle,
-                      color: Theme.of(context).primaryColor,
-                      size: 32,
-                    ),
-                    onSelected: _addCard,
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'lesson',
-                        child: Row(
-                          children: [
-                            Icon(Icons.book, color: Color(0xFF2F80ED)),
-                            SizedBox(width: 8),
-                            Text('📚 Leçon'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'example',
-                        child: Row(
-                          children: [
-                            Icon(Icons.lightbulb, color: Color(0xFF4ECDC4)),
-                            SizedBox(width: 8),
-                            Text('💡 Exemple'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'quiz',
-                        child: Row(
-                          children: [
-                            Icon(Icons.quiz, color: Color(0xFFFF6B6B)),
-                            SizedBox(width: 8),
-                            Text('❓ Quiz'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
 
-            // Liste des cartes
+            // Section des cartes
             Expanded(
-              child: _cards.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              child: Container(
+                color: isDark ? const Color(0xFF131823) : const Color(0xFFF5F7FA),
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
                         children: [
-                          Icon(
-                            Icons.layers_outlined,
-                            size: 64,
-                            color: isDark ? Colors.grey[600] : Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
                           Text(
-                            'Aucune carte',
-                            style: Theme.of(context).textTheme.bodyLarge,
+                            'Cartes du cours',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
-                          const SizedBox(height: 8),
+                          const Spacer(),
                           Text(
-                            'Appuyez sur + pour ajouter une carte',
+                            '${_cards.length} carte(s)',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
                       ),
-                    )
-                  : ReorderableListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _cards.length,
-                      onReorder: _reorderCards,
-                      itemBuilder: (context, index) {
-                        final card = _cards[index];
-                        return _buildCardItem(card, index, isDark);
-                      },
                     ),
+
+                    // Boutons d'ajout
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          _buildAddCardButton('Leçon', Icons.book, () => _addCard('lesson')),
+                          _buildAddCardButton('Exemple', Icons.lightbulb, () => _addCard('example')),
+                          _buildAddCardButton('Quiz', Icons.quiz, () => _addCard('quiz')),
+                          _buildAddCardButton('Exercice', Icons.code, () => _addCard('exercise')),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Liste des cartes
+                    Expanded(
+                      child: _cards.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.layers_outlined,
+                                    size: 64,
+                                    color: isDark ? Colors.grey[600] : Colors.grey[400],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Aucune carte',
+                                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                          color: Colors.grey,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Ajoutez des cartes pour créer votre cours',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Colors.grey,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ReorderableListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _cards.length,
+                              onReorder: _reorderCards,
+                              itemBuilder: (context, index) {
+                                return _buildCardItem(_cards[index], index, isDark);
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddCardButton(String label, IconData icon, VoidCallback onPressed) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
   }
 
   Widget _buildCardItem(CardModel card, int index, bool isDark) {
-    Color cardColor;
-    IconData cardIcon;
-    String cardLabel;
-
-    switch (card.type.toLowerCase()) {
-      case 'lesson':
-        cardColor = const Color(0xFF2F80ED);
-        cardIcon = Icons.book;
-        cardLabel = '📚 Leçon';
-        break;
-      case 'example':
-        cardColor = const Color(0xFF4ECDC4);
-        cardIcon = Icons.lightbulb;
-        cardLabel = '💡 Exemple';
-        break;
-      case 'quiz':
-        cardColor = const Color(0xFFFF6B6B);
-        cardIcon = Icons.quiz;
-        cardLabel = '❓ Quiz';
-        break;
-      default:
-        cardColor = const Color(0xFF2F80ED);
-        cardIcon = Icons.help;
-        cardLabel = '📝 Carte';
-    }
-
     return Container(
-      key: ValueKey(card.id.isEmpty ? 'card_$index' : card.id),
+      key: ValueKey(card.id),
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: isDark
-            ? Border.all(color: const Color(0xFF3C445C), width: 2)
-            : null,
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: isDark ? Border.all(color: const Color(0xFF3C445C), width: 2) : null,
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
         leading: Container(
-          width: 48,
-          height: 48,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: cardColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            color: _getTypeColor(card.type).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: Center(
-            child: Icon(cardIcon, color: cardColor, size: 24),
+          child: Icon(
+            _getTypeIcon(card.type),
+            color: _getTypeColor(card.type),
+            size: 22,
           ),
         ),
         title: Text(
-          cardLabel,
+          card.title,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+                fontWeight: FontWeight.w600,
+              ),
         ),
         subtitle: Text(
-          card.title.length > 50
-              ? '${card.title.substring(0, 50)}...'
-              : card.title,
-          style: Theme.of(context).textTheme.bodyMedium,
+          _getTypeLabel(card.type),
+          style: Theme.of(context).textTheme.bodySmall,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.edit, color: cardColor),
+              icon: const Icon(Icons.edit, size: 20),
               onPressed: () => _editCard(index),
+              color: Theme.of(context).primaryColor,
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: const Icon(Icons.delete, size: 20),
               onPressed: () => _deleteCard(index),
+              color: Colors.red,
             ),
-            const Icon(Icons.drag_handle, color: Colors.grey),
+            const Icon(Icons.drag_handle),
           ],
         ),
       ),
     );
   }
+
+  IconData _getTypeIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'lesson':
+        return Icons.book;
+      case 'example':
+        return Icons.lightbulb;
+      case 'quiz':
+        return Icons.quiz;
+      case 'exercise':
+        return Icons.code;
+      default:
+        return Icons.article;
+    }
+  }
+
+  Color _getTypeColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'lesson':
+        return const Color(0xFF2F80ED);
+      case 'example':
+        return const Color(0xFFFFD93D);
+      case 'quiz':
+        return const Color(0xFFFF6B6B);
+      case 'exercise':
+        return const Color(0xFF4ECDC4);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getTypeLabel(String type) {
+    switch (type.toLowerCase()) {
+      case 'lesson':
+        return 'Leçon';
+      case 'example':
+        return 'Exemple';
+      case 'quiz':
+        return 'Quiz';
+      case 'exercise':
+        return 'Exercice de code';
+      default:
+        return 'Carte';
+    }
+  }
 }
 
-// Dialog pour créer/éditer une carte
+// ==========================================
+// DIALOGUE D'ÉDITION DE CARTE (NORMAL)
+// ==========================================
+
 class _CardEditorDialog extends StatefulWidget {
   final String type;
   final CardModel? card;
@@ -448,36 +676,33 @@ class _CardEditorDialog extends StatefulWidget {
 }
 
 class _CardEditorDialogState extends State<_CardEditorDialog> {
-  late final TextEditingController _titleController;
-  late final TextEditingController _contentController;
-  late final TextEditingController _codeExampleController;
-  late final TextEditingController _explanationController;
-  final List<TextEditingController> _optionsControllers = [];
+  late TextEditingController _titleController;
+  late TextEditingController _contentController;
+  late TextEditingController _codeExampleController;
+  late TextEditingController _explanationController;
+
+  // Pour les quiz
+  final List<TextEditingController> _optionsControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   int _correctAnswerIndex = 0;
 
   @override
   void initState() {
     super.initState();
+
     _titleController = TextEditingController(text: widget.card?.title ?? '');
     _contentController = TextEditingController(text: widget.card?.content ?? '');
     _codeExampleController = TextEditingController(text: widget.card?.codeExample ?? '');
     _explanationController = TextEditingController(text: widget.card?.explanation ?? '');
 
-    if (widget.type.toLowerCase() == 'quiz') {
-      if (widget.card != null && widget.card!.options.isNotEmpty) {
-        for (var option in widget.card!.options) {
-          _optionsControllers.add(TextEditingController(text: option));
-        }
-        // Trouver l'index de la bonne réponse
-        if (widget.card!.correctAnswer != null) {
-          _correctAnswerIndex = widget.card!.options.indexOf(widget.card!.correctAnswer!);
-          if (_correctAnswerIndex == -1) _correctAnswerIndex = 0;
-        }
-      } else {
-        // 4 options par défaut
-        for (int i = 0; i < 4; i++) {
-          _optionsControllers.add(TextEditingController());
-        }
+    if (widget.type.toLowerCase() == 'quiz' && widget.card?.options != null) {
+      for (int i = 0; i < widget.card!.options!.length && i < 4; i++) {
+        _optionsControllers[i].text = widget.card!.options![i];
+      }
+      if (widget.card!.correctAnswer != null) {
+        _correctAnswerIndex = widget.card!.options!.indexOf(widget.card!.correctAnswer!);
       }
     }
   }

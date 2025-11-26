@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../core/legacy/card_model.dart';
+import '../core/legacy/card_model.dart';  // ✅ CORRIGÉ (sans _OLD)
+
 class CoursModel {
   final String id;
   final String titre;
@@ -51,6 +52,10 @@ class CoursModel {
   }
 
   int get totalCards => cards.length;
-  int get quizCount => cards.where((c) => c.isQuiz).length;
-  int get lessonCount => cards.where((c) => c.isLesson).length;
+  
+  int get quizCount => cards.where((c) => c.type == 'quiz').length;
+  
+  int get lessonCount => cards.where((c) => c.type == 'lesson').length;
+  
+  int get exerciseCount => cards.where((c) => c.type == 'exercise').length;  // ✅ AJOUTÉ
 }

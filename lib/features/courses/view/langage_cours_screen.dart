@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/legacy/langage_model.dart';
 import '../../../legacy/cours_model.dart';
 import '../../../core/services/cours_service.dart';
+import 'cours_swipe_screen.dart'; // ✅ AJOUTÉ
 
 class LangageCoursScreen extends StatefulWidget {
   final LangageModel langage;
@@ -19,48 +20,45 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
   @override
   void initState() {
     super.initState();
-    _testConnection();  // ✅ Test automatique au démarrage
+    _testConnection();
   }
 
-  // 🧪 Fonction de test pour vérifier que tout fonctionne
   Future<void> _testConnection() async {
     print('\n🧪 ===TEST DE CONNEXION FIRESTORE ===');
-    
+
     try {
       final firestore = FirebaseFirestore.instance;
-      
-      // Test 1: Compter tous les cours
+
       final allCours = await firestore.collection('cours').get();
       print('📚 Total cours dans Firestore: ${allCours.docs.length}');
-      
+
       if (allCours.docs.isEmpty) {
         print('⚠️  Aucun cours dans Firestore. Crée un cours d\'abord !');
         return;
       }
-      
-      // Afficher les cours
+
       for (var doc in allCours.docs) {
         final data = doc.data();
-        print('   - ${data['titre']} (langageId: ${data['langageId']}, ordre: ${data['ordre']})');
+        print(
+          '   - ${data['titre']} (langageId: ${data['langageId']}, ordre: ${data['ordre']})',
+        );
       }
-      
-      // Test 2: Filtrer par langageId (sans orderBy)
+
       print('\n🔍 Test filtre par langageId: ${widget.langage.id}');
       final filtered = await firestore
           .collection('cours')
           .where('langageId', isEqualTo: widget.langage.id)
           .get();
-      
+
       print('   Cours filtrés: ${filtered.docs.length}');
-      
-      // Test 3: Avec orderBy (nécessite l'index)
+
       print('\n🎯 Test avec orderBy (nécessite index)...');
       final ordered = await firestore
           .collection('cours')
           .where('langageId', isEqualTo: widget.langage.id)
           .orderBy('ordre')
           .get();
-      
+
       print('✅ SUCCÈS ! L\'index fonctionne !');
       print('📋 Cours trouvés et triés:');
       for (var doc in ordered.docs) {
@@ -69,7 +67,7 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
       }
     } catch (e) {
       print('❌ ERREUR: $e');
-      
+
       if (e.toString().contains('index')) {
         print('\n💡 SOLUTION:');
         print('═══════════════════════════════════════');
@@ -87,7 +85,7 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
         print('═══════════════════════════════════════');
       }
     }
-    
+
     print('=========================\n');
   }
 
@@ -99,7 +97,6 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          // AppBar avec gradient
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
@@ -124,8 +121,8 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isDark
-                      ? [const Color(0xFF4A9FFF), const Color(0xFF7EC8FF)]
-                      : [const Color(0xFF2F80ED), const Color(0xFF56CCF2)],
+                        ? [const Color(0xFF4A9FFF), const Color(0xFF7EC8FF)]
+                        : [const Color(0xFF2F80ED), const Color(0xFF56CCF2)],
                   ),
                 ),
                 child: Center(
@@ -138,7 +135,6 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
             ),
           ),
 
-          // Description
           SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.all(24),
@@ -149,45 +145,45 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                 border: isDark
                     ? Border.all(color: const Color(0xFF3C445C), width: 2)
                     : null,
-                boxShadow: isDark ? [] : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                boxShadow: isDark
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'À propos',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontSize: 20,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.displaySmall?.copyWith(fontSize: 20),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     widget.langage.description,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(fontSize: 16, height: 1.5),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Liste des cours
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Text(
                 'Cours disponibles',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  fontSize: 22,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.displaySmall?.copyWith(fontSize: 22),
               ),
             ),
           ),
@@ -211,28 +207,23 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
               }
 
               if (snapshot.hasError) {
-                print('❌ Erreur Stream: ${snapshot.error}');
                 return SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32),
                       child: Column(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.error_outline,
                             size: 64,
-                            color: isDark ? Colors.grey[600] : Colors.red,
+                            color: Colors.red,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Erreur de chargement',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${snapshot.error}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                            textAlign: TextAlign.center,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.copyWith(fontSize: 18),
                           ),
                         ],
                       ),
@@ -247,20 +238,22 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                 return SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(48),
+                      padding: const EdgeInsets.all(32),
                       child: Column(
                         children: [
                           Icon(
-                            Icons.menu_book_outlined,
-                            size: 64,
-                            color: isDark ? Colors.grey[600] : Colors.grey[400],
+                            Icons.school_outlined,
+                            size: 80,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color?.withOpacity(0.3),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Aucun cours disponible',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontSize: 18,
-                            ),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.copyWith(fontSize: 18),
                           ),
                         ],
                       ),
@@ -270,12 +263,9 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
               }
 
               return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    return _buildCoursCard(context, coursList[index], isDark);
-                  },
-                  childCount: coursList.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  return _buildCoursCard(context, coursList[index], isDark);
+                }, childCount: coursList.length),
               );
             },
           ),
@@ -301,35 +291,27 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
             border: isDark
                 ? Border.all(color: const Color(0xFF3C445C), width: 2)
                 : null,
-            boxShadow: isDark ? [] : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            boxShadow: isDark
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () {
-                // Navigue vers le cours via route nommée avec arguments
-                Navigator.pushNamed(
+                // ✅ CORRIGÉ : Navigation directe vers CoursSwipeScreen
+                Navigator.push(
                   context,
-                  '/course-detail',
-                  arguments: {
-                    'courseId': cours.id,
-                    'courseData': {
-                      'titre': cours.titre,
-                      'description': cours.description,
-                      'cards': cours.cards.map((c) => c.toMap()).toList(),
-                    },
-                    'langageData': {
-                      'nom': widget.langage.nom,
-                      'icon': widget.langage.icon,
-                    },
-                  },
+                  MaterialPageRoute(
+                    builder: (context) => CoursSwipeScreen(cours: cours),
+                  ),
                 );
               },
               child: Padding(
@@ -339,23 +321,35 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                   children: [
                     Row(
                       children: [
-                        // Numéro du cours
                         Container(
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: completed
-                                  ? [const Color(0xFF4CAF50), const Color(0xFF66BB6A)]
+                                  ? [
+                                      const Color(0xFF4CAF50),
+                                      const Color(0xFF66BB6A),
+                                    ]
                                   : isDark
-                                    ? [const Color(0xFF4A9FFF), const Color(0xFF7EC8FF)]
-                                    : [const Color(0xFF2F80ED), const Color(0xFF56CCF2)],
+                                  ? [
+                                      const Color(0xFF4A9FFF),
+                                      const Color(0xFF7EC8FF),
+                                    ]
+                                  : [
+                                      const Color(0xFF2F80ED),
+                                      const Color(0xFF56CCF2),
+                                    ],
                             ),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
                             child: completed
-                                ? const Icon(Icons.check, color: Colors.white, size: 24)
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 24,
+                                  )
                                 : Text(
                                     '${cours.ordre}',
                                     style: const TextStyle(
@@ -369,17 +363,17 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
 
                         const SizedBox(width: 16),
 
-                        // Titre et info
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 cours.titre,
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -387,27 +381,33 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                                   Icon(
                                     Icons.layers,
                                     size: 16,
-                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${cours.totalCards} cartes',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      fontSize: 14,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontSize: 14),
                                   ),
                                   const SizedBox(width: 12),
                                   Icon(
                                     Icons.quiz,
                                     size: 16,
-                                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                                    color: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.color,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${cours.quizCount} quiz',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      fontSize: 14,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(fontSize: 14),
                                   ),
                                 ],
                               ),
@@ -415,7 +415,6 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                           ),
                         ),
 
-                        // Icône
                         Icon(
                           Icons.arrow_forward_ios,
                           color: Theme.of(context).primaryColor,
@@ -435,7 +434,9 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                               ? const Color(0xFF2A3142)
                               : Colors.grey[200],
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            completed ? const Color(0xFF4CAF50) : Theme.of(context).primaryColor,
+                            completed
+                                ? const Color(0xFF4CAF50)
+                                : Theme.of(context).primaryColor,
                           ),
                         ),
                       ),
@@ -444,7 +445,9 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                         completed ? 'Terminé ✓' : '$progress% complété',
                         style: TextStyle(
                           fontSize: 12,
-                          color: completed ? const Color(0xFF4CAF50) : Theme.of(context).primaryColor,
+                          color: completed
+                              ? const Color(0xFF4CAF50)
+                              : Theme.of(context).primaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -458,4 +461,8 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
       },
     );
   }
+}
+
+extension on Object? {
+  toMap() {}
 }

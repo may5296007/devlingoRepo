@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../legacy/cours_model.dart';
 import '../../../core/services/cours_service.dart';
-import '../../../features/courses/view/cours_swipe_screen.dart';
 import '../../../core/legacy/swipable_card.dart';
+import '../../../core/legacy/card_model.dart';
+import '../widgets/code_exercise_card.dart';  // ✅ AJOUTÉ
 
 class CoursSwipeScreen extends StatefulWidget {
   final CoursModel cours;
@@ -57,15 +58,37 @@ class _CoursSwipeScreenState extends State<CoursSwipeScreen> {
   }
 
   Widget _buildCardView() {
+    final currentCard = widget.cours.cards[_currentCardIndex];
+    
+    // ✅ AJOUTÉ : Afficher l'exercice de code si c'est un exercice
+    if (currentCard.type == 'exercise') {
+      return SafeArea(
+        child: CodeExerciseCard(
+          key: ValueKey(_currentCardIndex),
+          card: currentCard,
+          onComplete: (isCorrect) {
+            if (isCorrect) {
+              // Attendre 2 secondes avant de passer à la carte suivante
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  _handleNextCard();
+                }
+              });
+            }
+          },
+        ),
+      );
+    }
+    
+    // Pour les autres types de cartes (lesson, quiz, example)
     return SafeArea(
       child: SwipableCard(
         key: ValueKey(_currentCardIndex),
-        card: widget.cours.cards[_currentCardIndex],
+        card: currentCard,
         isLastCard: _currentCardIndex >= widget.cours.cards.length - 1,
         onSwipeRight: _handleNextCard,
       ),
     );
-
   }
 
   void _handleNextCard() async {
@@ -166,6 +189,12 @@ class _CoursSwipeScreenState extends State<CoursSwipeScreen> {
                     Icons.quiz,
                     'Quiz réussis',
                     '${widget.cours.quizCount}',
+                  ),
+                  Divider(height: 32),
+                  _buildStat(
+                    Icons.code,
+                    'Exercices complétés',
+                    '${widget.cours.exerciseCount}',  // ✅ AJOUTÉ
                   ),
                   Divider(height: 32),
                   _buildStat(

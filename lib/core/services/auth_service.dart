@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -13,8 +14,7 @@ class AuthService {
   // Obtenir l'utilisateur actuel
   User? get currentUser => _auth.currentUser;
 
-  // ================== INSCRIPTION ==================
-
+  // Inscription avec email et mot de passe
   Future<UserCredential?> inscription({
     required String email,
     required String password,
@@ -24,24 +24,23 @@ class AuthService {
     required DateTime birthday,
   }) async {
     try {
-      final userCredential =
-          await _auth.createUserWithEmailAndPassword(email: email, password: password);
-      final uid = userCredential.user!.uid;
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-      await _firestore.collection('users').doc(uid).set({
-        'nom': nom,
-        'prenom': prenom,
-        'email': email,
-        'niveau': niveau,
-        'role': 'user',
-        'points': 0,
-        'streak': 0,
-        'badges': [],
-        'jours_apprentissage': [],
-        'coursCompletes': [],
-        'dateCreation': FieldValue.serverTimestamp(),
-        'birthday': Timestamp.fromDate(birthday),
-      });
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+      'nom': nom,
+      'prenom': prenom,
+      'email': email,
+      'niveau': niveau,
+      'role': 'user',  // ⬅️ AJOUTE CETTE LIGNE
+      'points': 0,
+      'streak': 0,
+      'badges': [],
+      'dateCreation': FieldValue.serverTimestamp(),
+      'birthday': Timestamp.fromDate(birthday),
+    });
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
@@ -49,8 +48,7 @@ class AuthService {
     }
   }
 
-  // ================== CONNEXION ==================
-
+  // ✅ CONNEXION AVEC EMAIL ET MOT DE PASSE (CELLE QUI MANQUAIT)
   Future<UserCredential?> connexion({
     required String email,
     required String password,
@@ -65,52 +63,67 @@ class AuthService {
     }
   }
 
-  // ================== GOOGLE ==================
-
+  // Connexion avec Google
   Future<UserCredential?> connexionGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-
-      final googleAuth = await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final userCredential = await _auth.signInWithCredential(credential);
-      final uid = userCredential.user!.uid;
-
+  try {
+    if (kIsWeb) {
+      // Web → Popup
+      GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      googleProvider.setCustomParameters({'prompt': 'select_account'});
+      UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
+      
       if (userCredential.additionalUserInfo?.isNewUser ?? false) {
-        await _firestore.collection('users').doc(uid).set({
-          'nom': googleUser.displayName?.split(' ').last ?? '',
-          'prenom': googleUser.displayName?.split(' ').first ?? '',
-          'email': googleUser.email,
-          'niveau': 'débutant',
-          'role': 'user',
-          'points': 0,
-          'badges': [],
-          'streak': 0,
-          'jours_apprentissage': [],
-          'coursCompletes': [],
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        await _creerProfilGoogle(userCredential);
       }
-
       return userCredential;
-    } catch (e) {
-      throw Exception('Erreur lors de la connexion avec Google');
     }
+    
+    // Mobile → GoogleSignIn
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) throw Exception('Connexion annulée');
+    
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    
+    UserCredential userCredential = await _auth.signInWithCredential(credential);
+    if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+      await _creerProfilGoogle(userCredential);
+    }
+    return userCredential;
+  } catch (e) {
+    throw Exception('Erreur Google: $e');
   }
+}
 
-  // ================== DECONNEXION / RESET ==================
+Future<void> _creerProfilGoogle(UserCredential userCredential) async {
+  final user = userCredential.user!;
+  await _firestore.collection('users').doc(user.uid).set({
+    'nom': user.displayName?.split(' ').last ?? '',
+    'prenom': user.displayName?.split(' ').first ?? '',
+    'email': user.email,
+    'niveau': 'débutant',
+    'role': 'user',
+    'points': 0,
+    'badges': [],
+    'streak': 0,
+    'jours_apprentissage': [],
+    'coursCompletes': [],
+    'createdAt': FieldValue.serverTimestamp(),
+  });
+}
 
+      
+
+  // Déconnexion
   Future<void> deconnexion() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
+  // Réinitialisation du mot de passe
   Future<void> resetPassword(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
@@ -119,18 +132,20 @@ class AuthService {
     }
   }
 
-  // ================== PROFIL ==================
-
+  // Obtenir les données du profile utilisateur
   Future<Map<String, dynamic>?> getProfilUtilisateur(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      if (!doc.exists) return null;
-      return doc.data() as Map<String, dynamic>;
-    } catch (_) {
+      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        return doc.data() as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
       return null;
     }
   }
 
+  // Gestion des erreurs Firebase Auth
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'weak-password':
@@ -152,42 +167,35 @@ class AuthService {
     }
   }
 
-  // ========== CALENDRIER & STREAK ==========
+  // ========== SYSTÈME DE CALENDRIER ET STREAK ==========
 
   /// Marquer aujourd'hui comme jour d'apprentissage complété
   Future<void> marquerJourComplete(String uid) async {
     try {
       final today = DateTime.now();
-      final todayStr =
-          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final dateString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
-      final docRef = _firestore.collection('users').doc(uid);
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userData = userDoc.data();
 
-      await _firestore.runTransaction((tx) async {
-        final snap = await tx.get(docRef);
-        final data = snap.data() as Map<String, dynamic>? ?? {};
+      if (userData == null) return;
 
-        final List<String> joursApprentissage =
-            List<String>.from(data['jours_apprentissage'] ?? []);
+      List<String> joursApprentissage = List<String>.from(userData['jours_apprentissage'] ?? []);
 
-        if (!joursApprentissage.contains(todayStr)) {
-          joursApprentissage.add(todayStr);
-        }
+      // Ajouter aujourd'hui si pas déjà fait
+      if (!joursApprentissage.contains(dateString)) {
+        joursApprentissage.add(dateString);
 
-        final int newStreak = _calculerStreak(joursApprentissage);
+        // Calculer le nouveau streak
+        int newStreak = _calculerStreak(joursApprentissage);
 
-        tx.set(
-          docRef,
-          {
-            'jours_apprentissage': joursApprentissage,
-            'streak': newStreak,
-            'derniere_connexion': FieldValue.serverTimestamp(),
-          },
-          SetOptions(merge: true),
-        );
-      });
+        await _firestore.collection('users').doc(uid).update({
+          'jours_apprentissage': joursApprentissage,
+          'streak': newStreak,
+          'derniere_connexion': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
-      // log discret, pas de crash
       print('Erreur marquerJourComplete: $e');
     }
   }
@@ -196,22 +204,24 @@ class AuthService {
   int _calculerStreak(List<String> joursApprentissage) {
     if (joursApprentissage.isEmpty) return 0;
 
-    final dates = joursApprentissage
-        .map((d) => DateTime.parse(d))
+    // Trier les dates du plus récent au plus ancien
+    List<DateTime> dates = joursApprentissage
+        .map((dateStr) => DateTime.parse(dateStr))
         .toList()
-      ..sort((a, b) => b.compareTo(a)); // plus récent -> plus ancien
+      ..sort((a, b) => b.compareTo(a));
 
     int streak = 0;
-    final now = DateTime.now();
-    DateTime checkDate = DateTime(now.year, now.month, now.day);
+    DateTime today = DateTime.now();
+    DateTime checkDate = DateTime(today.year, today.month, today.day);
 
-    for (final date in dates) {
-      final normalized = DateTime(date.year, date.month, date.day);
+    for (DateTime date in dates) {
+      DateTime normalizedDate = DateTime(date.year, date.month, date.day);
 
-      if (normalized.isAtSameMomentAs(checkDate)) {
+      if (normalizedDate.isAtSameMomentAs(checkDate)) {
         streak++;
-        checkDate = checkDate.subtract(const Duration(days: 1));
-      } else if (normalized.isBefore(checkDate)) {
+        checkDate = checkDate.subtract(Duration(days: 1));
+      } else if (normalizedDate.isBefore(checkDate)) {
+        // Il y a un trou dans le streak
         break;
       }
     }
@@ -222,16 +232,16 @@ class AuthService {
   /// Vérifier si un jour spécifique est complété
   Future<bool> estJourComplete(String uid, DateTime date) async {
     try {
-      final dateStr =
-          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final dateString = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-      final doc = await _firestore.collection('users').doc(uid).get();
-      final data = doc.data();
-      if (data == null) return false;
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userData = userDoc.data();
 
-      final jours = List<String>.from(data['jours_apprentissage'] ?? []);
-      return jours.contains(dateStr);
-    } catch (_) {
+      if (userData == null) return false;
+
+      List<String> joursApprentissage = List<String>.from(userData['jours_apprentissage'] ?? []);
+      return joursApprentissage.contains(dateString);
+    } catch (e) {
       return false;
     }
   }
@@ -239,22 +249,25 @@ class AuthService {
   /// Obtenir les jours complétés de la semaine actuelle
   Future<List<String>> getJoursCompletsSemaine(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      final data = doc.data();
-      if (data == null) return [];
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userData = userDoc.data();
 
-      final List<String> joursApprentissage =
-          List<String>.from(data['jours_apprentissage'] ?? []);
+      if (userData == null) return [];
 
-      final now = DateTime.now();
-      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      List<String> joursApprentissage = List<String>.from(userData['jours_apprentissage'] ?? []);
 
-      final List<String> joursCompletsSemaine = [];
+      // Obtenir les dates de la semaine actuelle
+      DateTime now = DateTime.now();
+      DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
 
-      for (final dateStr in joursApprentissage) {
-        final d = DateTime.parse(dateStr);
-        if (!d.isBefore(startOfWeek) && !d.isAfter(endOfWeek)) {
+      // Filtrer les jours de la semaine actuelle
+      List<String> joursCompletsSemaine = [];
+
+      for (String dateStr in joursApprentissage) {
+        DateTime date = DateTime.parse(dateStr);
+        if (date.isAfter(startOfWeek.subtract(Duration(days: 1))) &&
+            date.isBefore(endOfWeek.add(Duration(days: 1)))) {
           joursCompletsSemaine.add(dateStr);
         }
       }
@@ -266,21 +279,22 @@ class AuthService {
     }
   }
 
-  /// Recalcule le streak au chargement si besoin
+  /// Mettre à jour le streak automatiquement (à appeler au chargement)
   Future<void> updateStreakSiNecessaire(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      final data = doc.data();
-      if (data == null) return;
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userData = userDoc.data();
 
-      final joursApprentissage =
-          List<String>.from(data['jours_apprentissage'] ?? []);
-      final int currentStreak = data['streak'] ?? 0;
-      final int recalculated = _calculerStreak(joursApprentissage);
+      if (userData == null) return;
 
-      if (recalculated != currentStreak) {
+      List<String> joursApprentissage = List<String>.from(userData['jours_apprentissage'] ?? []);
+      int currentStreak = userData['streak'] ?? 0;
+      int calculatedStreak = _calculerStreak(joursApprentissage);
+
+      // Si le streak calculé est différent du streak actuel, on met à jour
+      if (currentStreak != calculatedStreak) {
         await _firestore.collection('users').doc(uid).update({
-          'streak': recalculated,
+          'streak': calculatedStreak,
         });
       }
     } catch (e) {

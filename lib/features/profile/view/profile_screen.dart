@@ -11,7 +11,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -25,7 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
     _fadeAnimation = CurvedAnimation(
@@ -70,32 +71,56 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
     final prenom = userData?['prenom'] ?? 'Développeur';
     final nom = userData?['nom'] ?? '';
-    final email = userData?['email'] ?? FirebaseAuth.instance.currentUser?.email ?? '';
+    final email =
+        userData?['email'] ?? FirebaseAuth.instance.currentUser?.email ?? '';
     final niveau = userData?['niveau'] ?? 'débutant';
     final points = userData?['points'] ?? 0;
     final streak = userData?['streak'] ?? 0;
     final badges = (userData?['badges'] as List?)?.length ?? 0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final primaryTextColor =
+        isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final secondaryTextColor =
+        isDark ? Colors.grey[400]! : Colors.grey[600]!;
+    final cardBgColor =
+        isDark ? const Color(0xFF2B3252) : Colors.white;
+    final cardBorderColor =
+        isDark ? const Color(0xFF3C445C) : Colors.grey[200]!;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: CustomScrollView(
             slivers: [
-              // AppBar simple
+              // AppBar qui respecte le thème
               SliverAppBar(
-                backgroundColor: Color(0xFF1A1F36),
+                backgroundColor: isDark
+                    ? const Color(0xFF1A1F36)
+                    : theme.scaffoldBackgroundColor,
                 elevation: 0,
                 pinned: true,
                 leading: IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.white),
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: isDark
+                        ? Colors.white
+                        : const Color(0xFF1A1A1A),
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 actions: [
                   IconButton(
-                    icon: Icon(Icons.settings, color: Colors.white),
+                    icon: Icon(
+                      Icons.settings,
+                      color: isDark
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A),
+                    ),
                     onPressed: () {
                       Navigator.pushNamed(context, '/settings');
                     },
@@ -105,48 +130,53 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      // Avatar + Info
-                      _buildProfileHeader(prenom, nom, niveau),
-
-                      SizedBox(height: 24),
-
-                      // Date d'inscription
-                      _buildJoinedDate(),
-
-                      SizedBox(height: 32),
-
-                      // Section Statistics
-                      _buildSectionTitle('Statistics'),
-
-                      SizedBox(height: 16),
-
-                      // Stats Cards
-                      _buildStatsGrid(streak, points, badges),
-
-                      SizedBox(height: 32),
-
-                      // Section Achievements
-                      _buildSectionTitle('Achievements'),
-
-                      SizedBox(height: 16),
-
-                      // Achievements List
-                      _buildAchievementsList(),
-
-                      SizedBox(height: 32),
-
-                      // Section Account
-                      _buildSectionTitle('Account Information'),
-
-                      SizedBox(height: 16),
-
-                      // Account Info
-                      _buildAccountInfo(email, prenom, nom, niveau),
-
-                      SizedBox(height: 32),
+                      _buildProfileHeader(
+                        prenom,
+                        nom,
+                        niveau,
+                        primaryTextColor,
+                      ),
+                      const SizedBox(height: 24),
+                      _buildJoinedDate(secondaryTextColor),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle('Statistics', primaryTextColor),
+                      const SizedBox(height: 16),
+                      _buildStatsGrid(
+                        streak,
+                        points,
+                        badges,
+                        primaryTextColor,
+                        secondaryTextColor,
+                        cardBgColor,
+                        cardBorderColor,
+                      ),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle('Achievements', primaryTextColor),
+                      const SizedBox(height: 16),
+                      _buildAchievementsList(
+                        primaryTextColor,
+                        secondaryTextColor,
+                        cardBgColor,
+                        cardBorderColor,
+                      ),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle(
+                          'Account Information', primaryTextColor),
+                      const SizedBox(height: 16),
+                      _buildAccountInfo(
+                        email,
+                        prenom,
+                        nom,
+                        niveau,
+                        primaryTextColor,
+                        secondaryTextColor,
+                        cardBgColor,
+                        cardBorderColor,
+                      ),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -158,7 +188,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildProfileHeader(String prenom, String nom, String niveau) {
+  // ===== HEADER =====
+
+  Widget _buildProfileHeader(
+    String prenom,
+    String nom,
+    String niveau,
+    Color primaryTextColor,
+  ) {
     return Column(
       children: [
         Stack(
@@ -168,20 +205,20 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF58CC02),
-                border: Border.all(color: Color(0xFF46A302), width: 4),
+                color: const Color(0xFF58CC02),
+                border: Border.all(color: const Color(0xFF46A302), width: 4),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0xFF58CC02).withOpacity(0.3),
+                    color: const Color(0xFF58CC02).withOpacity(0.3),
                     blurRadius: 20,
-                    offset: Offset(0, 10),
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: Center(
                 child: Text(
                   prenom[0].toUpperCase(),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -193,13 +230,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               bottom: 0,
               right: 0,
               child: Container(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Color(0xFF1CB0F6),
+                  color: const Color(0xFF1CB0F6),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Color(0xFF1A1F36), width: 3),
+                  border: Border.all(
+                    color: const Color(0xFF1A1F36),
+                    width: 3,
+                  ),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.verified,
                   size: 16,
                   color: Colors.white,
@@ -208,20 +248,20 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
           ],
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Text(
           '$prenom $nom',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: primaryTextColor,
           ),
         ),
-        SizedBox(height: 4),
+        const SizedBox(height: 4),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: _getLevelColor(niveau).withOpacity(0.2),
+            color: _getLevelColor(niveau).withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: _getLevelColor(niveau), width: 1),
           ),
@@ -238,19 +278,21 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildJoinedDate() {
+  // ===== JOINED DATE =====
+
+  Widget _buildJoinedDate(Color secondaryTextColor) {
     final now = DateTime.now();
     final formatter = DateFormat('MMMM yyyy');
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.access_time, color: Colors.grey[400], size: 18),
-        SizedBox(width: 8),
+        Icon(Icons.access_time, color: secondaryTextColor, size: 18),
+        const SizedBox(width: 8),
         Text(
           'Joined ${formatter.format(now)}',
           style: TextStyle(
-            color: Colors.grey[400],
+            color: secondaryTextColor,
             fontSize: 14,
           ),
         ),
@@ -258,7 +300,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  // ===== TITRE SECTION =====
+
+  Widget _buildSectionTitle(String title, Color primaryTextColor) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
@@ -266,13 +310,23 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         style: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: primaryTextColor,
         ),
       ),
     );
   }
 
-  Widget _buildStatsGrid(int streak, int points, int badges) {
+  // ===== STATS =====
+
+  Widget _buildStatsGrid(
+    int streak,
+    int points,
+    int badges,
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color cardBgColor,
+    Color cardBorderColor,
+  ) {
     return Column(
       children: [
         Row(
@@ -282,21 +336,29 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 icon: Icons.local_fire_department,
                 value: streak.toString(),
                 label: 'Day streak',
-                color: Color(0xFFFF9600),
+                color: const Color(0xFFFF9600),
+                primaryTextColor: primaryTextColor,
+                secondaryTextColor: secondaryTextColor,
+                cardBgColor: cardBgColor,
+                cardBorderColor: cardBorderColor,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
                 icon: Icons.bolt,
                 value: points.toString(),
                 label: 'Total XP',
-                color: Color(0xFFFFC800),
+                color: const Color(0xFFFFC800),
+                primaryTextColor: primaryTextColor,
+                secondaryTextColor: secondaryTextColor,
+                cardBgColor: cardBgColor,
+                cardBorderColor: cardBorderColor,
               ),
             ),
           ],
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -304,16 +366,24 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 icon: Icons.emoji_events,
                 value: _getLeague(points),
                 label: 'Current league',
-                color: Color(0xFF58CC02),
+                color: const Color(0xFF58CC02),
+                primaryTextColor: primaryTextColor,
+                secondaryTextColor: secondaryTextColor,
+                cardBgColor: cardBgColor,
+                cardBorderColor: cardBorderColor,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
                 icon: Icons.workspace_premium,
                 value: badges.toString(),
                 label: 'Achievements',
-                color: Color(0xFF1CB0F6),
+                color: const Color(0xFF1CB0F6),
+                primaryTextColor: primaryTextColor,
+                secondaryTextColor: secondaryTextColor,
+                cardBgColor: cardBgColor,
+                cardBorderColor: cardBorderColor,
               ),
             ),
           ],
@@ -327,33 +397,37 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     required String value,
     required String label,
     required Color color,
+    required Color primaryTextColor,
+    required Color secondaryTextColor,
+    required Color cardBgColor,
+    required Color cardBorderColor,
   }) {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color(0xFF2B3252),
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFF3C445C), width: 2),
+        border: Border.all(color: cardBorderColor, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color, size: 32),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             value,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: primaryTextColor,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[400],
+              color: secondaryTextColor,
             ),
           ),
         ],
@@ -361,14 +435,21 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildAchievementsList() {
+  // ===== ACHIEVEMENTS =====
+
+  Widget _buildAchievementsList(
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color cardBgColor,
+    Color cardBorderColor,
+  ) {
     final achievements = [
       {
         'title': 'Legendary',
         'description': 'Complete 25 legendary levels',
         'progress': 10,
         'total': 25,
-        'color': Color(0xFFFFC800),
+        'color': const Color(0xFFFFC800),
         'level': 4,
       },
       {
@@ -376,7 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         'description': 'Earn 500 XP in timed challenges',
         'progress': 228,
         'total': 500,
-        'color': Color(0xFFCE82FF),
+        'color': const Color(0xFFCE82FF),
         'level': 3,
       },
       {
@@ -384,32 +465,46 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         'description': 'Reach a 50 day streak',
         'progress': 40,
         'total': 50,
-        'color': Color(0xFFFF4B4B),
+        'color': const Color(0xFFFF4B4B),
         'level': 2,
       },
     ];
 
     return Column(
-      children: achievements.map((achievement) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: 16),
-          child: _buildAchievementCard(achievement),
-        );
-      }).toList(),
+      children: achievements
+          .map(
+            (achievement) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildAchievementCard(
+                achievement,
+                primaryTextColor,
+                secondaryTextColor,
+                cardBgColor,
+                cardBorderColor,
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 
-  Widget _buildAchievementCard(Map<String, dynamic> achievement) {
+  Widget _buildAchievementCard(
+    Map<String, dynamic> achievement,
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color cardBgColor,
+    Color cardBorderColor,
+  ) {
     final progress = achievement['progress'] as int;
     final total = achievement['total'] as int;
     final percentage = progress / total;
 
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFF2B3252),
+        color: cardBgColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFF3C445C), width: 2),
+        border: Border.all(color: cardBorderColor, width: 2),
       ),
       child: Row(
         children: [
@@ -417,26 +512,27 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: achievement['color'].withOpacity(0.2),
+              color: (achievement['color'] as Color).withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.emoji_events, color: achievement['color'], size: 28),
-                SizedBox(height: 2),
+                Icon(Icons.emoji_events,
+                    color: achievement['color'] as Color, size: 28),
+                const SizedBox(height: 2),
                 Text(
                   'LEVEL ${achievement['level']}',
                   style: TextStyle(
                     fontSize: 8,
-                    color: achievement['color'],
+                    color: achievement['color'] as Color,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,37 +541,38 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      achievement['title'],
+                      achievement['title'] as String,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: primaryTextColor,
                       ),
                     ),
                     Text(
                       '$progress/$total',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[400],
+                        color: secondaryTextColor,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  achievement['description'],
+                  achievement['description'] as String,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[400],
+                    color: secondaryTextColor,
                   ),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
                     value: percentage,
-                    backgroundColor: Color(0xFF3C445C),
-                    valueColor: AlwaysStoppedAnimation<Color>(achievement['color']),
+                    backgroundColor: cardBorderColor,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        achievement['color'] as Color),
                     minHeight: 8,
                   ),
                 ),
@@ -487,7 +584,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _buildAccountInfo(String email, String prenom, String nom, String niveau) {
+  // ===== ACCOUNT INFO =====
+
+  Widget _buildAccountInfo(
+    String email,
+    String prenom,
+    String nom,
+    String niveau,
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color cardBgColor,
+    Color cardBorderColor,
+  ) {
     return Column(
       children: [
         _buildInfoCard(
@@ -495,27 +603,43 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           label: 'Email',
           value: email,
           onTap: () => _showEditDialog('email', email),
+          primaryTextColor: primaryTextColor,
+          secondaryTextColor: secondaryTextColor,
+          cardBgColor: cardBgColor,
+          cardBorderColor: cardBorderColor,
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildInfoCard(
           icon: Icons.person_outline,
           label: 'Prénom',
           value: prenom,
           onTap: () => _showEditDialog('prenom', prenom),
+          primaryTextColor: primaryTextColor,
+          secondaryTextColor: secondaryTextColor,
+          cardBgColor: cardBgColor,
+          cardBorderColor: cardBorderColor,
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildInfoCard(
           icon: Icons.person_outline,
           label: 'Nom',
           value: nom,
           onTap: () => _showEditDialog('nom', nom),
+          primaryTextColor: primaryTextColor,
+          secondaryTextColor: secondaryTextColor,
+          cardBgColor: cardBgColor,
+          cardBorderColor: cardBorderColor,
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         _buildInfoCard(
           icon: Icons.code,
           label: 'Niveau',
           value: _getNiveauText(niveau),
-          onTap: () => _showLevelDialog(),
+          onTap: _showLevelDialog,
+          primaryTextColor: primaryTextColor,
+          secondaryTextColor: secondaryTextColor,
+          cardBgColor: cardBgColor,
+          cardBorderColor: cardBorderColor,
         ),
       ],
     );
@@ -526,21 +650,25 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     required String label,
     required String value,
     required VoidCallback onTap,
+    required Color primaryTextColor,
+    required Color secondaryTextColor,
+    required Color cardBgColor,
+    required Color cardBorderColor,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Color(0xFF2B3252),
+          color: cardBgColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Color(0xFF3C445C), width: 2),
+          border: Border.all(color: cardBorderColor, width: 2),
         ),
         child: Row(
           children: [
-            Icon(icon, color: Color(0xFF58CC02), size: 24),
-            SizedBox(width: 16),
+            Icon(icon, color: const Color(0xFF58CC02), size: 24),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,16 +677,16 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     label,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[400],
+                      color: secondaryTextColor,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     value,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: primaryTextColor,
                     ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -566,146 +694,25 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 ],
               ),
             ),
-            Icon(Icons.edit, color: Colors.grey[600], size: 20),
+            Icon(Icons.edit, color: secondaryTextColor, size: 20),
           ],
         ),
       ),
     );
   }
 
-  void _showEditDialog(String field, String currentValue) {
-    final controller = TextEditingController(text: currentValue);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Color(0xFF2B3252),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Modifier $field',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: TextField(
-          controller: controller,
-          style: TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Nouveau $field',
-            hintStyle: TextStyle(color: Colors.grey[600]),
-            filled: true,
-            fillColor: Color(0xFF1A1F36),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Annuler', style: TextStyle(color: Colors.grey[400])),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                await _firestore.collection('users').doc(user.uid).update({
-                  field: controller.text,
-                });
-                await _loadUserData();
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$field mis à jour !'),
-                    backgroundColor: Color(0xFF58CC02),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF58CC02),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLevelDialog() {
-    final levels = [
-      {'id': 'débutant', 'label': 'Débutant', 'color': Color(0xFF58CC02)},
-      {'id': 'intermédiaire', 'label': 'Intermédiaire', 'color': Color(0xFF1CB0F6)},
-      {'id': 'avancé', 'label': 'Avancé', 'color': Color(0xFFFF4B4B)},
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Color(0xFF2B3252),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Changer de niveau',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: levels.map((level) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: InkWell(
-                onTap: () async {
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user != null) {
-                    await _firestore.collection('users').doc(user.uid).update({
-                      'niveau': level['id'],
-                    });
-                    await _loadUserData();
-                    Navigator.pop(context);
-                  }
-                },
-                child: Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF1A1F36),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: level['color'] as Color, width: 2),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.emoji_events, color: level['color'] as Color, size: 24),
-                      SizedBox(width: 16),
-                      Text(
-                        level['label'] as String,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
+  // ===== HELPERS =====
 
   Color _getLevelColor(String niveau) {
     switch (niveau.toLowerCase()) {
       case 'débutant':
-        return Color(0xFF58CC02);
+        return const Color(0xFF58CC02);
       case 'intermédiaire':
-        return Color(0xFF1CB0F6);
+        return const Color(0xFF1CB0F6);
       case 'avancé':
-        return Color(0xFFFF4B4B);
+        return const Color(0xFFFF4B4B);
       default:
-        return Color(0xFF58CC02);
+        return const Color(0xFF58CC02);
     }
   }
 
@@ -728,5 +735,140 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     if (points < 1000) return 'Gold';
     if (points < 2000) return 'Emerald';
     return 'Diamond';
+
   }
+
+
+  // Dialogs inchangés, ils peuvent rester dark-style si tu veux
+    void _showEditDialog(String field, String currentValue) {
+    final controller = TextEditingController(text: currentValue);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2B3252),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Modifier',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Nouveau $field',
+            hintStyle: TextStyle(color: Colors.grey[600]),
+            filled: true,
+            fillColor: const Color(0xFF1A1F36),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Annuler',
+              style: TextStyle(color: Colors.grey[400]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                await _firestore.collection('users').doc(user.uid).update({
+                  field: controller.text,
+                });
+                await _loadUserData();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$field mis à jour !'),
+                    backgroundColor: const Color(0xFF58CC02),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF58CC02),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLevelDialog() {
+    final levels = [
+      {'id': 'débutant', 'label': 'Débutant', 'color': const Color(0xFF58CC02)},
+      {
+        'id': 'intermédiaire',
+        'label': 'Intermédiaire',
+        'color': const Color(0xFF1CB0F6)
+      },
+      {'id': 'avancé', 'label': 'Avancé', 'color': const Color(0xFFFF4B4B)},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF2B3252),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Changer de niveau',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: levels.map((level) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: InkWell(
+                onTap: () async {
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user != null) {
+                    await _firestore.collection('users').doc(user.uid).update({
+                      'niveau': level['id'],
+                    });
+                    await _loadUserData();
+                    Navigator.pop(context);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1F36),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: level['color'] as Color, width: 2),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.emoji_events,
+                          color: level['color'] as Color, size: 24),
+                      const SizedBox(width: 16),
+                      Text(
+                        level['label'] as String,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
 }

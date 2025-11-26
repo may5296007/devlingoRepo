@@ -10,7 +10,8 @@ class ThemeProvider extends ChangeNotifier {
     _loadTheme();
   }
 
-  // Charger le thème depuis les préférences
+  // ============= PERSISTENCE =============
+
   Future<void> _loadTheme() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -23,7 +24,6 @@ class ThemeProvider extends ChangeNotifier {
     }
   }
 
-  // Toggle le thème
   Future<void> toggleTheme() async {
     _isDarkMode = !_isDarkMode;
     try {
@@ -35,19 +35,28 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Theme clair
+  // ============= PALETTE COMMUNE =============
+
+  static const _primaryBlue = Color(0xFF2F80ED);
+  static const _accentGreen = Color(0xFF58CC02);
+  static const _errorRed = Color(0xFFFF4B4B);
+
+  // ============= LIGHT THEME =============
+
   ThemeData get lightTheme {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: Color(0xFF2F80ED),
-      scaffoldBackgroundColor: Color(0xFFF5F7FA),
-      
-      // AppBar
-      appBarTheme: AppBarTheme(
+    );
+
+    return base.copyWith(
+      primaryColor: _primaryBlue,
+      scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+
+      appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: Color(0xFF2F80ED)),
+        iconTheme: IconThemeData(color: _primaryBlue),
         titleTextStyle: TextStyle(
           color: Color(0xFF1A1A1A),
           fontSize: 20,
@@ -55,11 +64,9 @@ class ThemeProvider extends ChangeNotifier {
         ),
       ),
 
-      // Cards
       cardColor: Colors.white,
 
-      // Text
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         displayLarge: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold),
         displayMedium: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold),
         displaySmall: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold),
@@ -68,29 +75,77 @@ class ThemeProvider extends ChangeNotifier {
         bodySmall: TextStyle(color: Color(0xFF7A7A7A)),
       ),
 
-      // Icon
-      iconTheme: IconThemeData(color: Color(0xFF2F80ED)),
+      iconTheme: const IconThemeData(color: _primaryBlue),
 
-      colorScheme: ColorScheme.light(
-        primary: Color(0xFF2F80ED),
-        secondary: Color(0xFF58CC02),
+      colorScheme: const ColorScheme.light(
+        primary: _primaryBlue,
+        secondary: _accentGreen,
         surface: Colors.white,
-        error: Color(0xFFFF4B4B),
+        error: _errorRed,
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _primaryBlue,
+          side: const BorderSide(color: _primaryBlue),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: _primaryBlue,
+        ),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _primaryBlue, width: 2),
+        ),
       ),
     );
   }
 
-  // Theme sombre (style Duolingo)
+  // ============= DARK THEME =============
+
   ThemeData get darkTheme {
-    return ThemeData(
+    final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: Color(0xFF58CC02),
-      scaffoldBackgroundColor: Color(0xFF1A1F36),
-      
-      // AppBar
-      appBarTheme: AppBarTheme(
-        backgroundColor: Color(0xFF1A1F36),
+    );
+
+    return base.copyWith(
+      primaryColor: _primaryBlue, // on garde le bleu comme couleur principale
+      scaffoldBackgroundColor: const Color(0xFF0F172A),
+
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0F172A),
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.white),
         titleTextStyle: TextStyle(
@@ -100,27 +155,70 @@ class ThemeProvider extends ChangeNotifier {
         ),
       ),
 
-      // Cards
-      cardColor: Color(0xFF2B3252),
+      cardColor: const Color(0xFF111827),
 
-      // Text
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         displayLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         displayMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         displaySmall: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         bodyLarge: TextStyle(color: Colors.white),
-        bodyMedium: TextStyle(color: Color(0xFFB0B0B0)),
-        bodySmall: TextStyle(color: Color(0xFF808080)),
+        bodyMedium: TextStyle(color: Color(0xFFCBD5F5)),
+        bodySmall: TextStyle(color: Color(0xFF9CA3AF)),
       ),
 
-      // Icon
-      iconTheme: IconThemeData(color: Color(0xFF58CC02)),
+      iconTheme: const IconThemeData(color: _accentGreen),
 
-      colorScheme: ColorScheme.dark(
-        primary: Color(0xFF58CC02),
-        secondary: Color(0xFF1CB0F6),
-        surface: Color(0xFF2B3252),
-        error: Color(0xFFFF4B4B),
+      colorScheme: const ColorScheme.dark(
+        primary: _primaryBlue,        // le bleu reste la couleur des boutons
+        secondary: _accentGreen,      // vert en accent (icônes, badges…)
+        surface: Color(0xFF111827),
+        error: _errorRed,
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _primaryBlue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
+      ),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: BorderSide(color: Colors.white.withOpacity(0.6)),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: _accentGreen,
+        ),
+      ),
+
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1F2937),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade700),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade700),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _primaryBlue, width: 2),
+        ),
       ),
     );
   }

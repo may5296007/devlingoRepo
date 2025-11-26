@@ -18,6 +18,25 @@ class _AdminCoursScreenState extends State<AdminCoursScreen> {
   final RoleService _roleService = RoleService();
   
   String? _selectedLangageId;
+  UserRole? _currentRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole(); // 👈 c'est ici que ça doit être
+  }
+
+  
+  Future<void> _loadUserRole() async {
+    try {
+      final role = await _roleService.getCurrentUserRole();
+      setState(() {
+        _currentRole = role;
+      });
+    } catch (e) {
+      print('❌ Erreur chargement rôle: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -212,44 +231,47 @@ class _AdminCoursScreenState extends State<AdminCoursScreen> {
             if (value == 'edit') {
               _navigateToEditor(cours: cours);
             } else if (value == 'delete') {
-              _confirmDelete(cours);
+              // double sécurité côté UI + côté logique
+              if (_currentRole?.canDeleteCours() ?? false) {
+                _confirmDelete(cours);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Tu n’as pas le droit de supprimer ce cours.')),
+                );
+              }
             }
           },
           itemBuilder: (context) {
+            final canDelete = _currentRole?.canDeleteCours() ?? false;
+
             return [
               PopupMenuItem(
                 value: 'edit',
                 child: Row(
-                  children: [
+                  children: const [
                     Icon(Icons.edit, color: Color(0xFF2F80ED)),
                     SizedBox(width: 8),
                     Text('Modifier'),
                   ],
                 ),
               ),
-              PopupMenuItem(
-                value: 'delete',
-                child: FutureBuilder<UserRole>(
-                  future: _roleService.getCurrentUserRole(),
-                  builder: (context, snapshot) {
-                    if (snapshot.data?.canDeleteCours() ?? false) {
-                      return Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Supprimer'),
-                        ],
-                      );
-                    }
-                    return SizedBox.shrink();
-                  },
+              if (canDelete)
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Supprimer'),
+                    ],
+                  ),
                 ),
-              ),
             ];
           },
         ),
-      ),
-    );
+              ),
+            );
+
   }
 
   void _navigateToEditor({CoursModel? cours}) {

@@ -261,4 +261,35 @@ class CoursService {
       return {'progress': 0, 'completed': false};
     }
   }
+    /// Supprime un langage + tous ses cours
+  Future<void> deleteLangage(String langageId) async {
+    try {
+      print('🗑️ Suppression du langage: $langageId');
+
+      // 1) Récupérer tous les cours liés à ce langage
+      final coursSnap = await _firestore
+          .collection('cours')
+          .where('langageId', isEqualTo: langageId)
+          .get();
+
+      // 2) Batch pour tout supprimer proprement
+      final batch = _firestore.batch();
+
+      for (final doc in coursSnap.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 3) Supprimer le langage lui-même
+      final langageRef = _firestore.collection('langages').doc(langageId);
+      batch.delete(langageRef);
+
+      await batch.commit();
+
+      print('✅ Langage + ${coursSnap.docs.length} cours supprimés');
+    } catch (e) {
+      print('❌ Erreur suppression langage: $e');
+      rethrow;
+    }
+  }
+
 }

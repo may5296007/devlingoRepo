@@ -66,19 +66,22 @@ class _HomeViewState extends State<_HomeView>
     final vm = context.watch<HomeViewModel>();
 
     if (vm.isLoading) {
-      return Scaffold(
-        body: const Center(
+  return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2F80ED)),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       );
     }
 
-    final userData = vm.userData;
+  final userData = vm.userData;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -189,7 +192,7 @@ class _HomeViewState extends State<_HomeView>
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A),
+                    color: const Color(0xFF2F80ED),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -197,7 +200,7 @@ class _HomeViewState extends State<_HomeView>
                   'Prêt à coder aujourd\'hui ?',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: const  Color(0xFF2F80ED),
                   ),
                 ),
               ],
@@ -726,14 +729,19 @@ class _HomeViewState extends State<_HomeView>
     required Color color,
     required String icon,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor, // ← prend la bonne couleur selon light/dark
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.black.withOpacity(0.6)
+                : Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -759,24 +767,21 @@ class _HomeViewState extends State<_HomeView>
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: Colors.grey[200],
+                  backgroundColor: isDark
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.grey[200],
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -784,11 +789,16 @@ class _HomeViewState extends State<_HomeView>
             ),
           ),
           const SizedBox(width: 12),
-          Icon(Icons.arrow_forward_ios, color: color, size: 20),
+          Icon(
+            Icons.arrow_forward_ios,
+            color: color,
+            size: 20,
+          ),
         ],
       ),
     );
   }
+
 
   // ============ BADGES ============
 

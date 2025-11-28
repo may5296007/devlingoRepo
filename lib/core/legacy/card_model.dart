@@ -36,7 +36,7 @@ class CardModel {
     this.exerciseHint,
     this.exerciseTests,
     this.question,
-    this.reponse = '',
+    this.reponse = '', String? answer, String? code,
   });
 
   Map<String, dynamic> toMap() {
@@ -82,6 +82,10 @@ class CardModel {
       reponse: map['reponse'] ?? '',
     );
   }
+
+  get answer => null;
+
+  get code => null;
 
   CardModel copyWith({
     String? id,

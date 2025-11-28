@@ -25,7 +25,7 @@ import 'features/profile/view/profile_screen.dart';
 import 'features/settings/view/settings_screen.dart';
 import 'features/courses/view/cours_list_screen.dart';
 import 'features/courses/admin/view/admin_cours_screen.dart';
-import 'features/courses/view/course_detail_screen.dart';
+import 'features/courses/view/cours_swipe_screen.dart'; // ✅ AJOUTÉ
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,8 +90,35 @@ class DevLingoApp extends StatelessWidget {
               '/profile': (context) => const ProfileScreen(),
               '/settings': (context) => const SettingsScreen(),
               '/cours': (context) => CoursListScreen(),
-              '/admin-cours': (context) =>  AdminCoursScreen(),
-              '/course-detail': (context) =>  CourseDetailScreen(),
+              '/admin-cours': (context) => AdminCoursScreen(),
+            },
+            
+            // ✅ Gestion de la route dynamique /course-detail
+            onGenerateRoute: (settings) {
+              if (settings.name == '/course-detail') {
+                final args = settings.arguments as Map<String, dynamic>?;
+                
+                if (args == null) {
+                  return MaterialPageRoute(
+                    builder: (context) => Scaffold(
+                      appBar: AppBar(title: const Text('Erreur')),
+                      body: const Center(
+                        child: Text('Erreur: Aucun cours sélectionné'),
+                      ),
+                    ),
+                  );
+                }
+                
+                return MaterialPageRoute(
+                  builder: (context) => CoursSwipeScreen(
+                    courseId: args['courseId'] as String,
+                    courseData: args['courseData'] as Map<String, dynamic>,
+                    langageData: args['langageData'] as Map<String, dynamic>,
+                  ),
+                );
+              }
+              
+              return null;
             },
           );
         },

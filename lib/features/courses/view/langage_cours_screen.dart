@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/legacy/langage_model.dart';
-import '../../../legacy/cours_model.dart';
-import '../../../core/services/cours_service.dart';
-import 'cours_swipe_screen.dart'; // ✅ AJOUTÉ
+import 'cours_swipe_screen.dart';
+import 'course_preview_screen.dart';
 
 class LangageCoursScreen extends StatefulWidget {
   final LangageModel langage;
@@ -15,7 +14,7 @@ class LangageCoursScreen extends StatefulWidget {
 }
 
 class _LangageCoursScreenState extends State<LangageCoursScreen> {
-  final CoursService _coursService = CoursService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -188,8 +187,13 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
             ),
           ),
 
-          StreamBuilder<List<CoursModel>>(
-            stream: _coursService.getCoursByLangage(widget.langage.id),
+          // ✅ CORRIGÉ : Utilisation directe de StreamBuilder avec Firestore
+          StreamBuilder<QuerySnapshot>(
+            stream: _firestore
+                .collection('cours')
+                .where('langageId', isEqualTo: widget.langage.id)
+                .orderBy('ordre')
+                .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return SliverToBoxAdapter(
@@ -213,17 +217,21 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                       padding: const EdgeInsets.all(32),
                       child: Column(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.error_outline,
-                            size: 64,
-                            color: Colors.red,
+                            size: 48,
+                            color: Colors.red[300],
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Erreur de chargement',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyLarge?.copyWith(fontSize: 18),
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            snapshot.error.toString(),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
@@ -232,9 +240,7 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                 );
               }
 
-              final coursList = snapshot.data ?? [];
-
-              if (coursList.isEmpty) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
@@ -243,17 +249,19 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                         children: [
                           Icon(
                             Icons.school_outlined,
-                            size: 80,
-                            color: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.color?.withOpacity(0.3),
+                            size: 64,
+                            color: isDark ? Colors.grey[600] : Colors.grey[400],
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Aucun cours disponible',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyLarge?.copyWith(fontSize: 18),
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Les cours pour ${widget.langage.nom} seront bientôt disponibles',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
@@ -262,207 +270,239 @@ class _LangageCoursScreenState extends State<LangageCoursScreen> {
                 );
               }
 
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  return _buildCoursCard(context, coursList[index], isDark);
-                }, childCount: coursList.length),
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final coursDoc = snapshot.data!.docs[index];
+                      final coursData = coursDoc.data() as Map<String, dynamic>;
+                      
+                      return _buildCoursCard(
+                        context,
+                        coursDoc.id,
+                        coursData,
+                        isDark,
+                      );
+                    },
+                    childCount: snapshot.data!.docs.length,
+                  ),
+                ),
               );
             },
           ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
     );
   }
 
-  Widget _buildCoursCard(BuildContext context, CoursModel cours, bool isDark) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _coursService.getProgress(cours.id),
-      builder: (context, progressSnapshot) {
-        final progress = progressSnapshot.data?['progress'] as int? ?? 0;
-        final completed = progressSnapshot.data?['completed'] as bool? ?? false;
+  Widget _buildCoursCard(
+    BuildContext context,
+    String courseId,
+    Map<String, dynamic> coursData,
+    bool isDark,
+  ) {
+    final cards = coursData['cards'] as List<dynamic>? ?? [];
+    final titre = coursData['titre']?.toString() ?? 'Cours sans titre';
+    final ordre = coursData['ordre'] ?? 0;
+    
+    // Calculer le nombre de quiz
+    int quizCount = 0;
+    for (var card in cards) {
+      if (card is Map<String, dynamic> && card['type'] == 'quiz') {
+        quizCount++;
+      }
+    }
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: isDark
-                ? Border.all(color: const Color(0xFF3C445C), width: 2)
-                : null,
-            boxShadow: isDark
-                ? []
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                // ✅ CORRIGÉ : Navigation directe vers CoursSwipeScreen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CoursSwipeScreen(cours: cours),
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    // TODO: Récupérer la progression depuis Firestore
+    final progress = 0;
+    final completed = progress >= 100;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark
+            ? Border.all(color: const Color(0xFF3C445C), width: 2)
+            : null,
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // ✅ CORRIGÉ : Navigation avec les bons paramètres
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CoursSwipeScreen(
+                  courseId: courseId,
+                  courseData: coursData,
+                  langageData: {
+                    'id': widget.langage.id,
+                    'nom': widget.langage.nom,
+                    'icon': widget.langage.icon,
+                    'description': widget.langage.description,
+                  },
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: completed
-                                  ? [
-                                      const Color(0xFF4CAF50),
-                                      const Color(0xFF66BB6A),
-                                    ]
-                                  : isDark
-                                  ? [
-                                      const Color(0xFF4A9FFF),
-                                      const Color(0xFF7EC8FF),
-                                    ]
-                                  : [
-                                      const Color(0xFF2F80ED),
-                                      const Color(0xFF56CCF2),
-                                    ],
-                            ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: completed
-                                ? const Icon(
-                                    Icons.check,
-                                    color: Colors.white,
-                                    size: 24,
-                                  )
-                                : Text(
-                                    '${cours.ordre}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 16),
-
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                cours.titre,
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.layers,
-                                    size: 16,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium?.color,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${cours.totalCards} cartes',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontSize: 14),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Icon(
-                                    Icons.quiz,
-                                    size: 16,
-                                    color: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium?.color,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${cours.quizCount} quiz',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(fontSize: 14),
-                                  ),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: completed
+                              ? [
+                                  const Color(0xFF4CAF50),
+                                  const Color(0xFF66BB6A),
+                                ]
+                              : isDark
+                              ? [
+                                  const Color(0xFF4A9FFF),
+                                  const Color(0xFF7EC8FF),
+                                ]
+                              : [
+                                  const Color(0xFF2F80ED),
+                                  const Color(0xFF56CCF2),
                                 ],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: completed
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 24,
+                              )
+                            : Text(
+                                '$ordre',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            titre,
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.layers,
+                                size: 16,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.color,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${cards.length} cartes',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(fontSize: 14),
+                              ),
+                              const SizedBox(width: 12),
+                              Icon(
+                                Icons.quiz,
+                                size: 16,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.color,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$quizCount quiz',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(fontSize: 14),
                               ),
                             ],
                           ),
-                        ),
-
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          color: Theme.of(context).primaryColor,
-                          size: 20,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
 
-                    if (progress > 0) ...[
-                      const SizedBox(height: 16),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          value: progress / 100,
-                          minHeight: 8,
-                          backgroundColor: isDark
-                              ? const Color(0xFF2A3142)
-                              : Colors.grey[200],
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            completed
-                                ? const Color(0xFF4CAF50)
-                                : Theme.of(context).primaryColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        completed ? 'Terminé ✓' : '$progress% complété',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: completed
-                              ? const Color(0xFF4CAF50)
-                              : Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: Theme.of(context).primaryColor,
+                      size: 20,
+                    ),
                   ],
                 ),
-              ),
+
+                if (progress > 0) ...[
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: progress / 100,
+                      minHeight: 8,
+                      backgroundColor: isDark
+                          ? const Color(0xFF2A3142)
+                          : Colors.grey[200],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        completed
+                            ? const Color(0xFF4CAF50)
+                            : Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    completed ? 'Terminé ✓' : '$progress% complété',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: completed
+                          ? const Color(0xFF4CAF50)
+                          : Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
-}
-
-extension on Object? {
-  toMap() {}
 }

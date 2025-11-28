@@ -349,48 +349,33 @@ Future<void> _deleteCours() async {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      // ===============================================
-// APPBAR MODIFIÉ avec bouton SUPPRIMER
-// ===============================================
-// Remplace l'AppBar dans course_editor_screen.dart (vers ligne 176)
-
-appBar: AppBar(
-  title: Text(
-    widget.cours == null ? 'Nouveau cours' : 'Modifier le cours',
-  ),
-  backgroundColor: Theme.of(context).primaryColor,
-  actions: [
-    // ✅ BOUTON SUPPRIMER (seulement si on édite un cours existant)
-    if (widget.cours != null)
-      IconButton(
-        icon: const Icon(Icons.delete_outline),
-        onPressed: _isLoading ? null : _deleteCours,
-        tooltip: 'Supprimer le cours',
-        color: Colors.white,
+      appBar: AppBar(
+        title: Text(
+          widget.cours == null ? 'Nouveau cours' : 'Modifier le cours',
+        ),
+        backgroundColor: Theme.of(context).primaryColor,
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _saveCours,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text(
+                    'ENREGISTRER',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ],
       ),
-    
-    // Bouton ENREGISTRER
-    TextButton(
-      onPressed: _isLoading ? null : _saveCours,
-      child: _isLoading
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-          : const Text(
-              'ENREGISTRER',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-    ),
-  ],
-),
       body: Form(
         key: _formKey,
         child: Column(

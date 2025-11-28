@@ -497,7 +497,7 @@ class _HomeViewState extends State<_HomeView>
       );
     }
 
-    final userData = vm.userData;
+  final userData = vm.userData;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1203,6 +1203,9 @@ class _HomeViewState extends State<_HomeView>
     required Map<String, dynamic> coursData,
     required Map<String, dynamic> langageData,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1213,7 +1216,9 @@ class _HomeViewState extends State<_HomeView>
             : null,
         boxShadow: isDark ? [] : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.black.withOpacity(0.6)
+                : Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1292,6 +1297,7 @@ class _HomeViewState extends State<_HomeView>
       ),
     );
   }
+
 
   // ============ BADGES ============
 

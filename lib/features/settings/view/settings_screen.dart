@@ -331,12 +331,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    await _authService.deconnexion();
+                    try {
+                      // on tente la déconnexion proprement
+                      await _authService.deconnexion();
+                    } catch (e) {
+                      // au pire on log, mais on ne bloque pas la navigation
+                      debugPrint('Erreur déconnexion: $e');
+                    }
+
                     if (!mounted) return;
+
+                    // on ferme la dialog
+                    Navigator.of(dialogContext).pop();
+
+                    // on vide la stack et on va sur /welcome
                     Navigator.pushNamedAndRemoveUntil(
                       context,
                       '/welcome',
-                          (route) => false,
+                      (route) => false,
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -345,8 +357,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text('Déconnexion'),
+                  child: const Text('Déconnexion'),
                 ),
+
               ],
             ),
           );

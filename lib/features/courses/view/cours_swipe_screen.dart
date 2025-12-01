@@ -414,8 +414,35 @@ class _CoursSwipeScreenState extends State<CoursSwipeScreen> {
 
             const SizedBox(height: 24),
 
-            // Boutons
-            if (!_showAnswer)
+            // Boutons selon le type de carte
+            // LESSON : Seulement "Suivant" (pas de "Voir la réponse")
+            // QUIZ/EXAMPLE : "Voir la réponse" puis "Revoir" + "Suivant"
+            if (type == 'lesson')
+              // ✅ LESSON : Un seul bouton "Suivant"
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: _handleNextCard,
+                  icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                  label: Text(
+                    _currentCardIndex < cards.length - 1 ? 'Suivant' : 'Terminer',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              )
+            else if (!_showAnswer)
+              // ✅ QUIZ/EXAMPLE : Bouton "Voir la réponse"
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -443,6 +470,7 @@ class _CoursSwipeScreenState extends State<CoursSwipeScreen> {
                 ),
               )
             else
+              // ✅ QUIZ/EXAMPLE : Boutons "Revoir" + "Suivant"
               Row(
                 children: [
                   Expanded(
